@@ -67,6 +67,12 @@
     background: var(--card-bg); color: #fff; outline: none;
   }
   .search-bar:focus { border-color: var(--accent-color); }
+  .logout-btn {
+    background: transparent; color: #94a3b8; border: 1px solid var(--border-color);
+    padding: 6px 12px; border-radius: 12px; cursor: pointer; font-size: 13px;
+    transition: all 0.2s;
+  }
+  .logout-btn:hover { background: rgba(239, 68, 68, 0.1); color: #ef4444; border-color: rgba(239, 68, 68, 0.2); }
   
   .grid {
     display: grid;
@@ -106,7 +112,10 @@
 <div id="mainContent" class="container blur-bg">
   <header>
     <h1>🐙 SRT Private Memo</h1>
-    <input type="text" id="search" class="search-bar" placeholder="🔍 메모 검색..." oninput="filterMemos()">
+    <div style="display: flex; align-items: center; gap: 15px;">
+      <input type="text" id="search" class="search-bar" placeholder="🔍 메모 검색..." oninput="filterMemos()">
+      <button class="logout-btn" onclick="logout()">🔒 로그아웃</button>
+    </div>
   </header>
   <div id="memoGrid" class="grid"></div>
 </div>
@@ -122,10 +131,20 @@ async function sha256(message) {
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
+async function checkAutoLogin() {
+    const savedHash = localStorage.getItem("srt_board_auth");
+    if (savedHash === AUTH_HASH) {
+        document.getElementById("lockScreen").style.display = "none";
+        document.getElementById("mainContent").classList.remove("blur-bg");
+        loadMemos();
+    }
+}
+
 async function verifyPassword() {
     const pwd = document.getElementById("pwdInput").value;
     const hashed = await sha256(pwd);
     if (hashed === AUTH_HASH) {
+        localStorage.setItem("srt_board_auth", hashed);
         document.getElementById("lockScreen").style.opacity = 0;
         setTimeout(() => {
             document.getElementById("lockScreen").style.display = "none";
@@ -136,6 +155,15 @@ async function verifyPassword() {
         document.getElementById("errorMsg").style.display = "block";
     }
 }
+
+function logout() {
+    if (confirm("정말 로그아웃 하시겠어냥? 🔒")) {
+        localStorage.removeItem("srt_board_auth");
+        location.reload();
+    }
+}
+
+checkAutoLogin();
 
 function loadMemos() {
     fetch('memos.json?t=' + Date.now())
@@ -161,9 +189,9 @@ function renderMemos(memos) {
         const card = document.createElement("div");
         card.className = "card";
         card.innerHTML = `
-            <div class="card-title">\${escapeHtml(m.title)}</div>
-            <div class="card-date">📅 \${m.created_at}</div>
-            <div class="card-body">\${escapeHtml(m.content)}</div>
+            <div class="card-title">${escapeHtml(m.title)}</div>
+            <div class="card-date">📅 ${m.created_at}</div>
+            <div class="card-body">${escapeHtml(m.content)}</div>
         `;
         grid.appendChild(card);
     });
