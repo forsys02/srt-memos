@@ -161,9 +161,9 @@ function renderMemos(memos) {
         const card = document.createElement("div");
         card.className = "card";
         card.innerHTML = `
-            <div class="card-title">${escapeHtml(m.title)}</div>
-            <div class="card-date">📅 ${m.created_at}</div>
-            <div class="card-body">${escapeHtml(m.content)}</div>
+            <div class="card-title">\${escapeHtml(m.title)}</div>
+            <div class="card-date">📅 \${m.created_at}</div>
+            <div class="card-body">\${escapeHtml(m.content)}</div>
         `;
         grid.appendChild(card);
     });
