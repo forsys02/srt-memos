@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🐙 SRT Private Memo Board</title>
+<style>
+  :root {
+    --bg-color: #0f172a;
+    --card-bg: rgba(30, 41, 59, 0.75);
+    --text-color: #f8fafc;
+    --accent-color: #38bdf8;
+    --border-color: rgba(255, 255, 255, 0.1);
+  }
+  body, html {
+    margin: 0; padding: 0;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    min-height: 100vh;
+  }
+  .blur-bg {
+    filter: blur(8px);
+    transition: filter 0.5s ease;
+  }
+  .lock-screen {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(15, 23, 42, 0.96);
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    z-index: 9999;
+    transition: opacity 0.5s ease, visibility 0.5s ease;
+  }
+  .lock-box {
+    background: var(--card-bg);
+    padding: 30px; border-radius: 16px;
+    border: 1px solid var(--border-color);
+    text-align: center;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(10px);
+    max-width: 90%; width: 320px;
+  }
+  .lock-box h2 { margin-top: 0; color: var(--accent-color); font-size: 24px; }
+  .lock-box p { color: #94a3b8; font-size: 14px; margin-bottom: 20px; }
+  .lock-input {
+    width: 100%; padding: 12px; border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: rgba(15, 23, 42, 0.6);
+    color: #fff; text-align: center; font-size: 16px;
+    box-sizing: border-box; margin-bottom: 15px;
+    outline: none; transition: border-color 0.3s;
+  }
+  .lock-input:focus { border-color: var(--accent-color); }
+  .lock-btn {
+    width: 100%; padding: 12px; border-radius: 8px;
+    background: var(--accent-color);
+    color: #0f172a; font-weight: bold; border: none;
+    font-size: 16px; cursor: pointer; transition: opacity 0.2s;
+  }
+  .lock-btn:hover { opacity: 0.9; }
+  .error-msg { color: #ef4444; font-size: 12px; margin-top: 10px; display: none; }
+  
+  .container { max-width: 1200px; margin: 0 auto; padding: 25px; }
+  header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 1px solid var(--border-color); padding-bottom: 20px; }
+  h1 { margin: 0; font-size: 28px; color: var(--accent-color); display: flex; align-items: center; gap: 10px; }
+  .search-bar {
+    width: 100%; max-width: 400px; padding: 10px 18px; border-radius: 20px;
+    border: 1px solid var(--border-color);
+    background: var(--card-bg); color: #fff; outline: none;
+  }
+  .search-bar:focus { border-color: var(--accent-color); }
+  
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+  }
+  .card {
+    background: var(--card-bg);
+    border-radius: 12px; padding: 20px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+    display: flex; flex-direction: column;
+  }
+  .card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3);
+    border-color: var(--accent-color);
+  }
+  .card-title { font-size: 18px; font-weight: bold; color: var(--accent-color); margin-bottom: 8px; }
+  .card-date { font-size: 12px; color: #64748b; margin-bottom: 15px; }
+  .card-body { font-size: 14px; line-height: 1.6; color: #cbd5e1; white-space: pre-wrap; flex-grow: 1; }
+</style>
+</head>
+<body>
+
+<div id="lockScreen" class="lock-screen">
+  <div class="lock-box">
+    <h2>🔒 Private Board</h2>
+    <p>본인 확인을 위해 자막생성기 서버 비밀번호를 입력해주세요냥! 🐱</p>
+    <input type="password" id="pwdInput" class="lock-input" placeholder="비밀번호 입력..." onkeydown="if(event.key==='Enter') verifyPassword()">
+    <button class="lock-btn" onclick="verifyPassword()">연동 승인</button>
+    <div id="errorMsg" class="error-msg">비밀번호가 올바르지 않아냥! 😿</div>
+  </div>
+</div>
+
+<div id="mainContent" class="container blur-bg">
+  <header>
+    <h1>🐙 SRT Private Memo</h1>
+    <input type="text" id="search" class="search-bar" placeholder="🔍 메모 검색..." oninput="filterMemos()">
+  </header>
+  <div id="memoGrid" class="grid"></div>
+</div>
+
+<script>
+const AUTH_HASH = "833dfc7e3eb11230369904322cc8481b2b9a166d965557f97d4832cd92e072af";
+let allMemos = [];
+
+async function sha256(message) {
+    const msgBuffer = new TextEncoder().encode(message);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function verifyPassword() {
+    const pwd = document.getElementById("pwdInput").value;
+    const hashed = await sha256(pwd);
+    if (hashed === AUTH_HASH) {
+        document.getElementById("lockScreen").style.opacity = 0;
+        setTimeout(() => {
+            document.getElementById("lockScreen").style.display = "none";
+            document.getElementById("mainContent").classList.remove("blur-bg");
+        }, 500);
+        loadMemos();
+    } else {
+        document.getElementById("errorMsg").style.display = "block";
+    }
+}
+
+function loadMemos() {
+    fetch('memos.json?t=' + Date.now())
+        .then(res => res.json())
+        .then(data => {
+            allMemos = data;
+            renderMemos(allMemos);
+        })
+        .catch(err => {
+            console.error(err);
+            document.getElementById("memoGrid").innerHTML = "<p>데이터를 로드하는 데 실패했어냥... 😿</p>";
+        });
+}
+
+function renderMemos(memos) {
+    const grid = document.getElementById("memoGrid");
+    grid.innerHTML = "";
+    if (memos.length === 0) {
+        grid.innerHTML = "<p style='color: #64748b; grid-column: 1/-1; text-align: center;'>작성된 메모가 없어냥! 📝</p>";
+        return;
+    }
+    memos.forEach(m => {
+        const card = document.createElement("div");
+        card.className = "card";
+        card.innerHTML = `
+            <div class="card-title">\${escapeHtml(m.title)}</div>
+            <div class="card-date">📅 \${m.created_at}</div>
+            <div class="card-body">\${escapeHtml(m.content)}</div>
+        `;
+        grid.appendChild(card);
+    });
+}
+
+function filterMemos() {
+    const query = document.getElementById("search").value.toLowerCase();
+    const filtered = allMemos.filter(m => 
+        m.title.toLowerCase().includes(query) || 
+        m.content.toLowerCase().includes(query)
+    );
+    renderMemos(filtered);
+}
+
+function escapeHtml(str) {
+    if (!str) return "";
+    return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+}
+</script>
+</body>
+</html>
