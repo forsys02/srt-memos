@@ -211,50 +211,27 @@ async function sha256(message) {
 }
 
 async function checkAutoLogin() {
-    try {
-        const savedHash = localStorage.getItem("srt_board_auth");
-        if (savedHash && savedHash === AUTH_HASH) {
-            document.getElementById("lockScreen").style.display = "none";
-            document.getElementById("mainContent").classList.remove("blur-bg");
-            loadMemos();
-        }
-    } catch(e) {
-        console.warn("자동 로그인 확인 실패:", e);
+    const savedHash = localStorage.getItem("srt_board_auth");
+    if (savedHash === AUTH_HASH) {
+        document.getElementById("lockScreen").style.display = "none";
+        document.getElementById("mainContent").classList.remove("blur-bg");
+        loadMemos();
     }
 }
 
 async function verifyPassword() {
-    const btn = document.querySelector(".lock-btn");
-    const errEl = document.getElementById("errorMsg");
-    errEl.style.display = "none";
-    if (btn) { btn.disabled = true; btn.textContent = "확인 중..."; }
-    try {
-        const pwd = document.getElementById("pwdInput").value;
-        if (!pwd) {
-            errEl.textContent = "비밀번호를 입력해주세요냥! 😿";
-            errEl.style.display = "block";
-            return;
-        }
-        const hashed = await sha256(pwd);
-        if (hashed === AUTH_HASH) {
-            localStorage.setItem("srt_board_auth", hashed);
-            document.getElementById("lockScreen").style.opacity = 0;
-            setTimeout(() => {
-                document.getElementById("lockScreen").style.display = "none";
-                document.getElementById("mainContent").classList.remove("blur-bg");
-            }, 500);
-            loadMemos();
-        } else {
-            errEl.textContent = "비밀번호가 올바르지 않아냥! 😿";
-            errEl.style.display = "block";
-            document.getElementById("pwdInput").select();
-        }
-    } catch(e) {
-        console.error("로그인 처리 오류:", e);
-        errEl.textContent = "오류 발생! 새로고침 후 다시 시도해주세요냥 🔄";
-        errEl.style.display = "block";
-    } finally {
-        if (btn) { btn.disabled = false; btn.textContent = "연동 승인"; }
+    const pwd = document.getElementById("pwdInput").value;
+    const hashed = await sha256(pwd);
+    if (hashed === AUTH_HASH) {
+        localStorage.setItem("srt_board_auth", hashed);
+        document.getElementById("lockScreen").style.opacity = 0;
+        setTimeout(() => {
+            document.getElementById("lockScreen").style.display = "none";
+            document.getElementById("mainContent").classList.remove("blur-bg");
+        }, 500);
+        loadMemos();
+    } else {
+        document.getElementById("errorMsg").style.display = "block";
     }
 }
 
@@ -275,7 +252,8 @@ function loadMemos() {
         .then(res => res.json())
         .then(data => {
             memosFileSha = data.sha;
-            const contentDecoded = decodeURIComponent(escape(atob(data.content.replace(/\n/g, ''))));
+            const contentDecoded = decodeURIComponent(escape(atob(data.content.replace(/
+/g, ''))));
             allMemos = JSON.parse(contentDecoded);
             renderMemos(allMemos);
         })
