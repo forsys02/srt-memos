@@ -282,14 +282,14 @@ function renderMemos(memos) {
         card.className = "card";
         card.innerHTML = `
             <div class="card-header">
-                <h3 class="card-title">\${escapeHtml(m.title)}</h3>
+                <h3 class="card-title">${escapeHtml(m.title)}</h3>
                 <div class="card-actions">
-                    <button class="action-icon" onclick="openEditMemoModal('\${m.id}')" title="수정">✏️</button>
-                    <button class="action-icon action-icon-delete" onclick="deleteMemo('\${m.id}')" title="삭제">🗑️</button>
+                    <button class="action-icon" onclick="openEditMemoModal('${m.id}')" title="수정">✏️</button>
+                    <button class="action-icon action-icon-delete" onclick="deleteMemo('${m.id}')" title="삭제">🗑️</button>
                 </div>
             </div>
-            <div class="card-date">📅 \${m.created_at}</div>
-            <div class="card-body">\${escapeHtml(m.content)}</div>
+            <div class="card-date">📅 ${m.created_at}</div>
+            <div class="card-body">${escapeHtml(m.content)}</div>
         `;
         grid.appendChild(card);
     });
@@ -320,9 +320,9 @@ function closeMemoModal() {
 }
 
 async function pushMemosToGithub(updatedMemos) {
-    const fileUrl = `https://api.github.com/repos/\${GITHUB_ID}/\${REPO}/contents/memos.json`;
+    const fileUrl = `https://api.github.com/repos/${GITHUB_ID}/${REPO}/contents/memos.json`;
     const headers = {
-        'Authorization': `token \${GITHUB_TOKEN}`,
+        'Authorization': `token ${GITHUB_TOKEN}`,
         'Accept': 'application/vnd.github+json',
         'Content-Type': 'application/json'
     };
@@ -331,7 +331,7 @@ async function pushMemosToGithub(updatedMemos) {
     const contentEncoded = btoa(unescape(encodeURIComponent(contentStr)));
     
     try {
-        const getRes = await fetch(fileUrl + '?t=' + Date.now(), { headers: { 'Authorization': `token \${GITHUB_TOKEN}` } });
+        const getRes = await fetch(fileUrl + '?t=' + Date.now(), { headers: { 'Authorization': `token ${GITHUB_TOKEN}` } });
         const getData = await getRes.json();
         memosFileSha = getData.sha;
     } catch (e) {
@@ -389,7 +389,7 @@ async function saveMemo() {
         const hh = String(now.getHours()).padStart(2, '0');
         const mi = String(now.getMinutes()).padStart(2, '0');
         const ss = String(now.getSeconds()).padStart(2, '0');
-        const nowStr = `\${yyyy}-\${mm}-\${dd} \${hh}:\${mi}:\${ss}`;
+        const nowStr = `${yyyy}-${mm}-${dd} ${hh}:${mi}:${ss}`;
         
         if (memoId) {
             updated = updated.map(m => {
