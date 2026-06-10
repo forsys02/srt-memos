@@ -252,7 +252,8 @@ function loadMemos() {
         .then(res => res.json())
         .then(data => {
             memosFileSha = data.sha;
-            const contentDecoded = decodeURIComponent(escape(atob(data.content.replace(/\n/g, ''))));
+            const contentDecoded = decodeURIComponent(escape(atob(data.content.replace(/
+/g, ''))));
             allMemos = JSON.parse(contentDecoded);
             renderMemos(allMemos);
         })
