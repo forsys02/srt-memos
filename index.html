@@ -402,7 +402,7 @@ async function loadMemos() {
         }
         const data = await res.json();
         memosFileSha = data.sha;
-        const contentDecoded = atob(data.content.replace(/\n/g, ''));
+        const contentDecoded = atob(data.content.replace(/\r\n/g, ''));
         const decodedText = await decryptData(contentDecoded, serverPassword);
         allMemos = JSON.parse(decodedText);
         renderMemos(allMemos);
