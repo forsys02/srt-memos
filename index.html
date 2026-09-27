@@ -318,7 +318,7 @@
    · LOCAL_API 가 null 이면(GitHub Pages 사본) 완전한 읽기 전용.
    ────────────────────────────────────────────────────────────── */
 
-const ENCRYPTED_DATA = {"salt": "39QhVkQBb66bIXo8P6H3BQ==", "iv": "uXZrLBJZtnyiHsAi", "ciphertext": "JVj+NAquH1kKEh2pum5t6KXi8SGGUBUcjz60b0dFhuYX8s/H5LWjjzBDs5a+//Fmy3behs5vjzIBiv0Yk5xQTkSEZqwXwKIh1dEkSvlUM2jmmmSXRIYjl9Wlc5WN2oTNTZDndtQ2Oc175bnLYC2Cv3hG0OJhPjEEi8hSIrc80kSTKhWtDHdFX+BBcm/6GlELLVIbqpC8PGbBDMl1DbsLAyZ4M8qoH6mQnmVphLp1qpcWKhqiR+qzTkAvBYdpD5c/8t1z39d4OKkARd5Hkx8PDZ/HWZ8N9WophmzRXVNVx+59WkfHOo46Ekdjim+pj41fPTc/4jd0cyUjZ/KjJKYYqGF4Usv7Pb/E/+J7P8MJtizpM4pdL5ghfGWl2zXAxQpaUXfjV1x7elfM69+UNFitw90axmXhRrJETRzdxpvuepSC6E0+UtDz7OYYohq8WvQlhNrU/tj59d3/1H4bSeYM7qmnHWVXDqDrBnTT/uTbrgFgM+CVgkmEjSm2WLKBZb82OQQHgljB61Y6e4LEso99+/EJEtigNxxfvCCkWIHiRWZS5TbvrA8SHMe6aNS1N09iYUkSKCymRFJ77pDuByadTEebMEJSDNpRuNTZWr7A6UOAxy8AWDJGFbidUtdBe6J6TSvestGGFK2mP2vta3rS6xAD0UKkmMYPVkwZlCA7mGVG1A0pdcXG6/CiD0QDxoNmnV1JNa5lc32LvFczMs4juYPuYGCJ3uHs+6r5av+Nx1XzoHP5eGpbSLE0nkjB"};
+const ENCRYPTED_DATA = {"salt": "Q8LEiFfFcYVIOodzDRvssQ==", "iv": "HxdCx360UB3duho4", "ciphertext": "tYJoMXblrCe+mU//cLFlE39iqyfBpDEe70bclb+Eqms/1bpJsY6fZyg9kAGKcHDeDMKwD6mEUmDneVEtm+I5BdUVjaIK3v3EHOOFuGOwC227s14dleEv7WY8fWFTtyDviCsh/aYO1mClqj/yLjtYFzCgEHoYUdhIDAHOOl/Ri27474ffAvtJDUrcd9Xg3ooJ1T+RgFF5yD8JR92ty6gup0vvv3YSKMEOtTNcyAawbcESaHrjGaDm8AOQIg0NCQWHn3THrE8h+Eztpe0R+1QewPk1vRtHEppKq3Ys82LLqrMGgvAKLdSH3TXZ41lCdZuSh1zQZB0zEwoEA4+KJICB7IkRO1remSM4/927gi//Tgc9DahoXgR2/iKG9XT+6T0PYhEuNXomVs2tg+4nW28fBfqGCkcSvkrbUymThMpYhWXJXPNI5VS6kN0rzBNPbr8/GXESO+xX/cu6zYuxgt/60fFri57MtGl7cJ/gTXpC95virjEa/9D9Fuwhu7dIxc3xAFDjJ2R72nsSvUzF4ANVzpCU83thwcI8MxEXkeiXYk5jXrmOeeOvpk0WNHumJ0TnkIiEoMJrnWm6Ne4HO2LxHa4zrM32u15nMRGLzlxAwiFg2Ip8xxvuMB7P4kphX+CTKLU6k1jvSDVSci/KVtUojPnU+ITJeTlw/W3ADyPD3xVlL0MbGJ/vkpnz/B53bGVzlBwqbpzbm1WGJU0PIlDZUQWJ6oDm+6aiNn1d9FV1nuxKupywtv3TXZdC1R3P"};
 const LOCAL_API = null;
 const IS_READ_ONLY = !LOCAL_API;
 
@@ -473,6 +473,22 @@ async function submitUnlock() {
         }
         refreshWriteBanner();
         renderAll();
+        if (deepMemoId) {
+            const targetMid = deepMemoId;
+            setTimeout(function () {
+                const targetEl = document.querySelector('.card[data-mid="' + targetMid + '"]');
+                if (targetEl) {
+                    targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    targetEl.style.transition = 'all 0.4s ease';
+                    targetEl.style.boxShadow = '0 0 0 3px #38bdf8, 0 8px 24px rgba(56, 189, 248, 0.4)';
+                    targetEl.style.transform = 'scale(1.02)';
+                    setTimeout(function () {
+                        targetEl.style.boxShadow = '';
+                        targetEl.style.transform = '';
+                    }, 2400);
+                }
+            }, 120);
+        }
         deepBookId = null;
         deepMemoId = null;
     } catch (e) {
@@ -505,10 +521,15 @@ function init() {
     // 🐙📇 [V22.35] 메모 플리 딥링크 — '/media' 카드에서 '#key=…&book=<id>&memo=<id>'
     deepBookId = params.get('book') || null;
     deepMemoId = params.get('memo') || null;
+    const isNew = params.get('action') === 'new';
     const key = fromUrl || fromSession;
     if (key) {
         document.getElementById('manualKey').value = key;
-        submitUnlock();
+        submitUnlock().then(function () {
+            if (isNew) {
+                setTimeout(function () { openMemoModal(); }, 150);
+            }
+        });
         // 키는 URL 프래그먼트에만 존재. 히스토리에 남기지 않는다 🛡️
         if (fromUrl) {
             history.replaceState(null, '', window.location.pathname + window.location.search);
