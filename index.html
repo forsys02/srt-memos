@@ -306,13 +306,16 @@
    · LOCAL_API 가 null 이면(GitHub Pages 사본) 완전한 읽기 전용.
    ────────────────────────────────────────────────────────────── */
 
-const ENCRYPTED_DATA = {"salt": "sdvNko+IRzVmjbZIxucZWA==", "iv": "VeTje8etfD7s5ii2", "ciphertext": "ISNLMYkgi+bZ82vhpMg7B/w0+GOsOfVjFqgoIAp9dwLkNo4IiixWPxkHYH/nIVL81Ye43D64DGwZeOPAyUCbz/BbA6q5PhiCITf1hzjbpZpBJp5ua/eV9uViuw7Z0UbhK5czxqdnIhmdHvlqMIzwO3omuY7vfLp4RJBqZqxi7lMuKZKM6wiEGGQbZ5OpsJ45Y3VSz0u390PuDfyVr+EHiZKpjTBY4RE2iC1ui9CWPA=="};
+const ENCRYPTED_DATA = {"salt": "Di9VcbZaUJHHx3SeX59WTA==", "iv": "oucWKBmwjiEJtIsF", "ciphertext": "9zU/PaJ2l8Wuwp4XLjXCgofE69UAEXLWA8rGMIyuh2F+qMWGyuWbi4I/TXZ8/RWINSfam5eDPXWkgSyh9D/xHIoBWbSkwnyoiyMAcl3ImjmYhispPkaGQWTrZ0WdlBlV59r65gkuKIYlsOn5QE9c5mNvcDrzIpXIbQUNXq8dW2XgxrNVj6x4cyBCguKZKgM+Yo5KW98mofFLFmyOw8vnAKZ0Hi23zvk+l5+aKDpFwztKbElCu6a1tI2rSupfRUh5Y4yArAQD062Ht5henzwYv1JYugG+pSEGcFe+QCq03Znoos+KHNLOcYT3Mbw5tR5bhmF7998wAdjSLV98Glj2gLVVHDTu2ru110pNB07EXANeLq0dS3loLVpa2biuY+Ybq7FJqHWtodP87pVonlB5jZMy7aUythVzwflg2rz6I/+ahfQoWRSMIv+4gEk="};
 const LOCAL_API = null;
 const IS_READ_ONLY = !LOCAL_API;
 
 let board = null;
 let currentBookId = null;
 let boardKey = null;
+// 🐙📇 [V22.35] '/media' 메모 플리 카드가 넘겨준 장/메모 딥링크 (해시 프래그먼트)
+let deepBookId = null;
+let deepMemoId = null;
 
 /* ── 암호화 ── */
 function _b64ToBytes(b64) {
@@ -420,10 +423,18 @@ async function submitUnlock() {
         document.getElementById('lockScreen').style.display = 'none';
         document.getElementById('mainContent').classList.remove('blur-bg');
         if (!currentBookId || !board.books.some(function (b) { return b.id === currentBookId; })) {
-            currentBookId = board.books[0].id;
+            // 🐙📇 [V22.35] 메모 플리에서 '#book=<id>' 로 들어온 경우 그 장을 연다.
+            //    (요청한 장이 없으면 조용히 첫 장으로 넘어가지 말고 첫 장으로 되돌린다)
+            let wantBook = currentBookId;
+            if (!wantBook && deepBookId && board.books.some(function (b) { return b.id === deepBookId; })) {
+                wantBook = deepBookId;
+            }
+            currentBookId = wantBook || board.books[0].id;
         }
         refreshWriteBanner();
         renderAll();
+        deepBookId = null;
+        deepMemoId = null;
     } catch (e) {
         errEl.textContent = e.message || '복호화에 실패했어냥! 😿';
         errEl.style.display = 'block';
@@ -448,6 +459,9 @@ function init() {
     const params = new URLSearchParams(hash);
     const fromUrl = params.get('key');
     const fromSession = sessionStorage.getItem('srt_board_key');
+    // 🐙📇 [V22.35] 메모 플리 딥링크 — '/media' 카드에서 '#key=…&book=<id>&memo=<id>'
+    deepBookId = params.get('book') || null;
+    deepMemoId = params.get('memo') || null;
     const key = fromUrl || fromSession;
     if (key) {
         document.getElementById('manualKey').value = key;
