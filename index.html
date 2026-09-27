@@ -1,633 +1,817 @@
+<!-- __BOARD_HTML_START__ -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>📝 SRT Private Memo Board</title>
 <style>
   :root {
     --bg-color: #0f172a;
-    --card-bg: rgba(30, 41, 59, 0.75);
+    --panel-bg: rgba(30, 41, 59, 0.75);
+    --card-bg: rgba(30, 41, 59, 0.9);
     --text-color: #f8fafc;
     --accent-color: #38bdf8;
     --border-color: rgba(255, 255, 255, 0.1);
+    --danger: #ef4444;
   }
+  * { box-sizing: border-box; }
   body, html {
     margin: 0; padding: 0;
     background-color: var(--bg-color);
     color: var(--text-color);
-    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, 'Noto Sans KR', sans-serif;
     min-height: 100vh;
   }
-  .blur-bg {
-    filter: blur(8px);
-    transition: filter 0.5s ease;
-  }
+  .blur-bg { filter: blur(8px); transition: filter 0.4s ease; }
+
+  /* ── 잠금 화면 ── */
   .lock-screen {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(15, 23, 42, 0.96);
+    background: rgba(15, 23, 42, 0.97);
     display: flex; flex-direction: column; justify-content: center; align-items: center;
     z-index: 9999;
-    transition: opacity 0.5s ease, visibility 0.5s ease;
   }
   .lock-box {
-    background: var(--card-bg);
-    padding: 30px; border-radius: 16px;
-    border: 1px solid var(--border-color);
-    text-align: center;
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(10px);
-    max-width: 90%; width: 320px;
+    background: var(--card-bg); padding: 34px 30px; border-radius: 18px;
+    border: 1px solid var(--border-color); text-align: center;
+    box-shadow: 0 8px 32px 0 rgba(0,0,0,0.45); max-width: 92%; width: 340px;
   }
   .lock-box h2 { margin-top: 0; color: var(--accent-color); font-size: 24px; }
-  .lock-box p { color: #94a3b8; font-size: 14px; margin-bottom: 20px; }
+  .lock-box p { color: #94a3b8; font-size: 13.5px; line-height: 1.6; }
   .lock-input {
-    width: 100%; padding: 12px; border-radius: 8px;
-    border: 1px solid var(--border-color);
-    background: rgba(15, 23, 42, 0.6);
-    color: #fff; text-align: center; font-size: 16px;
-    box-sizing: border-box; margin-bottom: 15px;
-    outline: none; transition: border-color 0.3s;
+    width: 100%; padding: 12px; border-radius: 10px;
+    border: 1px solid var(--border-color); background: rgba(15,23,42,0.7);
+    color: #fff; text-align: center; font-size: 15px; margin-bottom: 14px;
+    outline: none; transition: border-color 0.2s;
   }
   .lock-input:focus { border-color: var(--accent-color); }
   .lock-btn {
-    width: 100%; padding: 12px; border-radius: 8px;
-    background: var(--accent-color);
-    color: #0f172a; font-weight: bold; border: none;
-    font-size: 16px; cursor: pointer; transition: opacity 0.2s;
+    width: 100%; padding: 12px; border-radius: 10px;
+    background: var(--accent-color); color: #0f172a; font-weight: 700;
+    border: none; font-size: 15px; cursor: pointer; transition: opacity 0.2s;
   }
   .lock-btn:hover { opacity: 0.9; }
-  
-  .container { max-width: 1200px; margin: 0 auto; padding: 25px; }
-  header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 1px solid var(--border-color); padding-bottom: 20px; }
-  h1 { margin: 0; font-size: 28px; color: var(--accent-color); display: flex; align-items: center; gap: 10px; }
+  .lock-btn:disabled { opacity: 0.5; cursor: wait; }
+  .err-msg { color: var(--danger); font-size: 12.5px; margin-top: 12px; display: none; }
+
+  /* ── 레이아웃 ── */
+  .app { max-width: 1320px; margin: 0 auto; padding: 22px; }
+  .app-header {
+    display: flex; justify-content: space-between; align-items: center; gap: 14px;
+    margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 18px;
+    flex-wrap: wrap;
+  }
+  .app-header h1 {
+    margin: 0; font-size: 25px; color: var(--accent-color);
+    display: flex; align-items: center; gap: 9px;
+  }
+  .header-tools { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
   .search-bar {
-    width: 100%; max-width: 400px; padding: 10px 18px; border-radius: 20px;
-    border: 1px solid var(--border-color);
-    background: var(--card-bg); color: #fff; outline: none;
+    width: 100%; max-width: 330px; padding: 9px 16px; border-radius: 20px;
+    border: 1px solid var(--border-color); background: var(--panel-bg);
+    color: #fff; outline: none; font-size: 13px;
   }
   .search-bar:focus { border-color: var(--accent-color); }
-  
-  .logout-btn {
-    background: transparent; color: #94a3b8; border: 1px solid var(--border-color);
-    padding: 6px 12px; border-radius: 12px; cursor: pointer; font-size: 13px;
-    transition: all 0.2s;
-    white-space: nowrap;
+  .btn {
+    border: none; padding: 8px 15px; border-radius: 11px; cursor: pointer;
+    font-size: 13px; font-weight: 700; white-space: nowrap; transition: all 0.18s;
   }
-  .logout-btn:hover { background: rgba(239, 68, 68, 0.1); color: #ef4444; border-color: rgba(239, 68, 68, 0.2); }
-  
-  .add-btn {
-    background: var(--accent-color); color: #0f172a; border: none;
-    padding: 8px 16px; border-radius: 12px; cursor: pointer; font-size: 14px;
-    font-weight: bold; transition: all 0.2s;
-    white-space: nowrap;
+  .btn-primary { background: var(--accent-color); color: #0f172a; }
+  .btn-primary:hover { opacity: 0.9; transform: scale(1.02); }
+  .btn-ghost { background: transparent; color: #94a3b8; border: 1px solid var(--border-color); }
+  .btn-ghost:hover { background: rgba(239,68,68,0.1); color: var(--danger); border-color: rgba(239,68,68,0.25); }
+  .btn:disabled { opacity: 0.5; cursor: wait; }
+
+  .layout { display: flex; gap: 20px; align-items: flex-start; }
+  .sidebar {
+    width: 218px; flex-shrink: 0; background: var(--panel-bg);
+    border: 1px solid var(--border-color); border-radius: 14px; padding: 14px 12px;
   }
-  .add-btn:hover { opacity: 0.9; transform: scale(1.02); }
-  
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 20px;
+  .sidebar-title {
+    font-size: 11.5px; font-weight: 700; color: #64748b; letter-spacing: 0.5px;
+    margin: 0 0 10px 4px; text-transform: uppercase;
   }
+  .book-list { display: flex; flex-direction: column; gap: 3px; margin-bottom: 12px; }
+  .book-item {
+    display: flex; align-items: center; gap: 8px; padding: 9px 11px;
+    border-radius: 10px; cursor: pointer; font-size: 13.5px; color: #cbd5e1;
+    transition: background 0.15s; border: 1px solid transparent; user-select: none;
+  }
+  .book-item:hover { background: rgba(255,255,255,0.06); }
+  .book-item.active { background: rgba(56,189,248,0.14); border-color: rgba(56,189,248,0.35); color: #fff; font-weight: 700; }
+  .book-emoji { font-size: 15px; flex-shrink: 0; }
+  .book-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .book-count {
+    font-size: 11px; color: #64748b; background: rgba(255,255,255,0.07);
+    padding: 1px 7px; border-radius: 9px; flex-shrink: 0;
+  }
+  .book-tools { display: flex; flex-direction: column; gap: 5px; }
+  .book-tool {
+    display: flex; align-items: center; gap: 7px; padding: 8px 11px; border-radius: 9px;
+    font-size: 12.5px; color: #94a3b8; cursor: pointer; background: transparent;
+    border: 1px dashed var(--border-color); text-align: left; width: 100%;
+    font-family: inherit; transition: all 0.15s;
+  }
+  .book-tool:hover { background: rgba(56,189,248,0.1); color: var(--accent-color); border-color: rgba(56,189,248,0.3); }
+
+  .content-area { flex: 1; min-width: 0; }
+  .banner {
+    display: none; align-items: center; gap: 9px; padding: 10px 15px; margin-bottom: 16px;
+    border-radius: 11px; font-size: 12.5px; line-height: 1.5;
+  }
+  .banner.show { display: flex; }
+  .banner-ro { background: rgba(56,189,248,0.1); border: 1px solid rgba(56,189,248,0.3); color: #7dd3fc; }
+  .banner-err { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: #fca5a5; }
+  .banner-warn { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.32); color: #fcd34d; }
+  .link-btn {
+    background: transparent; border: none; color: var(--accent-color);
+    font: inherit; font-weight: 700; cursor: pointer; text-decoration: underline;
+    padding: 0 2px; font-size: inherit;
+  }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(272px, 1fr)); gap: 17px; }
   .card {
-    background: var(--card-bg);
-    border-radius: 12px; padding: 20px;
-    border: 1px solid var(--border-color);
-    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
-    transition: transform 0.2s, box-shadow 0.2s;
+    background: var(--card-bg); border-radius: 13px; padding: 17px;
+    border: 1px solid var(--border-color); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.12);
+    transition: transform 0.18s, box-shadow 0.18s, border-color 0.18s;
     display: flex; flex-direction: column;
   }
-  .card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3);
-    border-color: var(--accent-color);
+  .card:hover { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3); border-color: var(--accent-color); }
+  .card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 9px; margin-bottom: 7px; }
+  .card-title { font-size: 16.5px; font-weight: 700; color: var(--accent-color); margin: 0; line-height: 1.35; word-break: break-word; }
+  .card-actions { display: flex; gap: 3px; flex-shrink: 0; }
+  .icon-btn {
+    cursor: pointer; color: #64748b; background: transparent; border: none;
+    padding: 3px 5px; font-size: 13px; border-radius: 6px; transition: all 0.15s; line-height: 1;
   }
-  
-  .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; gap: 10px; }
-  .card-title { font-size: 18px; font-weight: bold; color: var(--accent-color); margin: 0; line-height: 1.3; }
-  .card-actions { display: flex; gap: 8px; flex-shrink: 0; }
-  .action-icon {
-    cursor: pointer; color: #64748b; transition: color 0.2s; font-size: 14px;
-    background: transparent; border: none; padding: 2px 4px;
+  .icon-btn:hover { color: var(--accent-color); background: rgba(56,189,248,0.12); }
+  .icon-btn.danger:hover { color: var(--danger); background: rgba(239,68,68,0.12); }
+  .icon-btn.on { color: #fbbf24; }
+  .card-date { font-size: 11.5px; color: #64748b; margin-bottom: 12px; }
+  .card-body {
+    font-size: 13.5px; line-height: 1.65; color: #cbd5e1;
+    white-space: pre-wrap; word-break: break-word; flex-grow: 1;
+    max-height: 260px; overflow: hidden; position: relative;
   }
-  .action-icon:hover { color: var(--accent-color); }
-  .action-icon-delete:hover { color: #ef4444; }
-  
-  .card-date { font-size: 12px; color: #64748b; margin-bottom: 15px; }
-  .card-body { font-size: 14px; line-height: 1.6; color: #cbd5e1; white-space: pre-wrap; flex-grow: 1; }
+  .card-body.clamped::after {
+    content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 46px;
+    background: linear-gradient(transparent, var(--card-bg));
+  }
+  .empty-hint { text-align: center; padding: 54px 20px; color: #64748b; font-size: 14px; grid-column: 1/-1; }
 
-  /* 모달 스타일 */
+  /* ── 모달 ── */
   .modal {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(15, 23, 42, 0.85);
-    display: none; justify-content: center; align-items: center;
-    z-index: 10000;
+    background: rgba(15,23,42,0.86); display: none;
+    justify-content: center; align-items: center; z-index: 10000; padding: 18px;
   }
   .modal-box {
-    background: #1e293b;
-    padding: 25px; border-radius: 16px;
-    border: 1px solid var(--border-color);
-    width: 90%; max-width: 500px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    background: #1e293b; padding: 24px; border-radius: 16px;
+    border: 1px solid var(--border-color); width: 100%; max-width: 520px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5); max-height: 90vh; overflow-y: auto;
   }
-  .modal-box h3 { margin-top: 0; color: var(--accent-color); font-size: 20px; margin-bottom: 20px; }
-  .modal-input {
-    width: 100%; padding: 12px; border-radius: 8px;
-    border: 1px solid var(--border-color);
-    background: rgba(15, 23, 42, 0.6);
-    color: #fff; font-size: 15px;
-    box-sizing: border-box; margin-bottom: 15px;
-    outline: none; transition: border-color 0.3s;
+  .modal-box h3 { margin-top: 0; color: var(--accent-color); font-size: 19px; margin-bottom: 18px; }
+  .modal-label { display: block; font-size: 12px; color: #94a3b8; margin-bottom: 6px; font-weight: 600; }
+  .modal-input, .modal-textarea, .modal-select {
+    width: 100%; padding: 11px; border-radius: 9px; margin-bottom: 15px;
+    border: 1px solid var(--border-color); background: rgba(15,23,42,0.7);
+    color: #fff; font-size: 14px; outline: none; font-family: inherit;
   }
-  .modal-textarea {
-    width: 100%; height: 180px; padding: 12px; border-radius: 8px;
-    border: 1px solid var(--border-color);
-    background: rgba(15, 23, 42, 0.6);
-    color: #fff; font-size: 14px;
-    box-sizing: border-box; margin-bottom: 20px;
-    outline: none; resize: none; transition: border-color 0.3s;
-    font-family: inherit; line-height: 1.6;
-  }
-  .modal-input:focus, .modal-textarea:focus { border-color: var(--accent-color); }
-  .modal-buttons { display: flex; justify-content: flex-end; gap: 10px; }
-  .modal-btn {
-    padding: 10px 18px; border-radius: 8px; font-weight: bold; cursor: pointer; border: none; font-size: 14px;
-  }
+  .modal-textarea { height: 190px; resize: vertical; line-height: 1.6; }
+  .modal-input:focus, .modal-textarea:focus, .modal-select:focus { border-color: var(--accent-color); }
+  .modal-select option { background: #1e293b; color: #fff; }
+  .modal-buttons { display: flex; justify-content: flex-end; gap: 9px; flex-wrap: wrap; }
+  .modal-btn { padding: 9px 17px; border-radius: 9px; font-weight: 700; cursor: pointer; border: none; font-size: 13.5px; }
   .modal-btn-cancel { background: #475569; color: #f8fafc; }
   .modal-btn-save { background: var(--accent-color); color: #0f172a; }
+  .modal-btn-danger { background: var(--danger); color: #fff; }
+  .modal-btn:disabled { opacity: 0.5; cursor: wait; }
+
+  /* ── 반응형 ── */
+  @media (max-width: 860px) {
+    .layout { flex-direction: column; }
+    .sidebar { width: 100%; }
+    .book-list { flex-direction: row; overflow-x: auto; padding-bottom: 4px; }
+    .book-item { flex-shrink: 0; }
+    .book-tools { flex-direction: row; }
+  }
+  @media (max-width: 520px) {
+    .app { padding: 14px; }
+    .app-header h1 { font-size: 19px; }
+    .search-bar { max-width: 100%; }
+    .grid { grid-template-columns: 1fr; }
+  }
 </style>
 </head>
 <body>
 
 <div id="lockScreen" class="lock-screen">
   <div class="lock-box">
-    <h2>🔒 Private Board</h2>
-    <p style="color: #64748b; font-size: 14px;">보안 잠금 해제 및 복호화를 진행해줘냥! 🐱</p>
-    <input type="password" id="manualPassword" class="lock-input" placeholder="비밀번호 입력..." onkeypress="if(event.key==='Enter') submitManualLogin()">
-    <input type="password" id="manualToken" class="lock-input" placeholder="깃허브 토큰 입력 (글쓰기 권한 - 선택)..." onkeypress="if(event.key==='Enter') submitManualLogin()">
-    <button class="lock-btn" onclick="submitManualLogin()">잠금 해제 🔓</button>
-    <p id="errorMsg" class="error-msg" style="color: #ef4444; font-size: 12px; margin-top: 10px; display: none;"></p>
+    <h2>🔒 Private Memo Board</h2>
+    <p>이 보드는 <b>AES-256-GCM</b> 으로 암호화되어 있어냥.<br>보안 키를 입력해야 내용이 풀려! 🐱</p>
+    <input type="password" id="manualKey" class="lock-input" placeholder="보안 키 입력..." autocomplete="off">
+    <button class="lock-btn" id="unlockBtn" onclick="submitUnlock()">잠금 해제 🔓</button>
+    <p id="errorMsg" class="err-msg"></p>
   </div>
 </div>
 
-<div id="mainContent" class="container blur-bg">
-  <header>
+<div id="mainContent" class="app blur-bg">
+  <div class="app-header">
     <h1>📝 SRT Private Memo</h1>
-    <div style="display: flex; align-items: center; gap: 12px; flex-wrap: nowrap;">
-      <input type="text" id="search" class="search-bar" placeholder="🔍 메모 검색..." oninput="filterMemos()">
-      <button class="add-btn" onclick="openNewMemoModal()">➕ 새 메모</button>
-      <button class="logout-btn" onclick="logout()">🔒 로그아웃</button>
+    <div class="header-tools">
+      <input type="text" id="search" class="search-bar" placeholder="🔍 메모 검색..." oninput="renderMemos()">
+      <button class="btn btn-primary rw-only" id="btnAddMemo" onclick="openMemoModal()">➕ 새 메모</button>
+      <button class="btn btn-ghost" onclick="logout()">🔒 잠금</button>
     </div>
-  </header>
-  <div id="memoGrid" class="grid"></div>
+  </div>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar-title">📚 메모 장</div>
+      <div class="book-list" id="bookList"></div>
+      <div class="book-tools rw-only">
+        <button class="book-tool" onclick="openBookModal()">➕ 새 메모 장</button>
+        <button class="book-tool" id="btnEditBook" onclick="openBookModal(currentBookId)">✏️ 메모 장 이름</button>
+        <button class="book-tool" id="btnDelBook" onclick="deleteBook(currentBookId)">🗑️ 메모 장 삭제</button>
+      </div>
+    </aside>
+
+    <div class="content-area">
+      <div class="banner banner-ro" id="roBanner">🔒 <span>읽기 전용 모드 — 외부 조회용 사본이야. 편집은 미디어 서버 주소로 접속하면 돼!</span></div>
+      <div class="banner banner-warn" id="wrBanner">🔒 <span>쓰기 잠겨 있어 — 저장하려면
+        <button type="button" class="link-btn" onclick="openPinModal()">🔓 쓰기 PIN 입력</button>해줘.</span></div>
+      <div class="banner banner-err" id="errBanner"></div>
+      <div class="grid" id="memoGrid"></div>
+    </div>
+  </div>
 </div>
 
-<!-- 모달 팝업 -->
-<div id="memoModal" class="modal">
+<div id="memoModal" class="modal" onclick="if(event.target===this) closeMemoModal()">
   <div class="modal-box">
-    <h3 id="modalTitleText">➕ 새 메모 작성</h3>
-    <input type="hidden" id="editingMemoId">
+    <h3 id="memoModalTitle">➕ 새 메모 작성</h3>
+    <label class="modal-label" for="memoBookSelect">📚 메모 장</label>
+    <select id="memoBookSelect" class="modal-select"></select>
+    <label class="modal-label" for="memoTitleInput">제목</label>
     <input type="text" id="memoTitleInput" class="modal-input" placeholder="제목을 입력하세요냥...">
+    <label class="modal-label" for="memoContentInput">내용</label>
     <textarea id="memoContentInput" class="modal-textarea" placeholder="내용을 입력하세요냥..."></textarea>
     <div class="modal-buttons">
       <button class="modal-btn modal-btn-cancel" onclick="closeMemoModal()">취소</button>
-      <button class="modal-btn modal-btn-save" id="modalSaveBtn" onclick="saveMemo()">저장하기</button>
+      <button class="modal-btn modal-btn-save" id="memoSaveBtn" onclick="saveMemo()">저장하기</button>
+    </div>
+  </div>
+</div>
+
+<div id="bookModal" class="modal" onclick="if(event.target===this) closeBookModal()">
+  <div class="modal-box" style="max-width:400px;">
+    <h3 id="bookModalTitle">➕ 새 메모 장</h3>
+    <label class="modal-label" for="bookEmojiInput">이모지</label>
+    <input type="text" id="bookEmojiInput" class="modal-input" placeholder="📁" maxlength="4">
+    <label class="modal-label" for="bookNameInput">이름</label>
+    <input type="text" id="bookNameInput" class="modal-input" placeholder="예: 할 일, 아이디어...">
+    <div class="modal-buttons">
+      <button class="modal-btn modal-btn-cancel" onclick="closeBookModal()">취소</button>
+      <button class="modal-btn modal-btn-save" id="bookSaveBtn" onclick="saveBook()">저장하기</button>
+    </div>
+  </div>
+</div>
+
+<!-- [V22.34] 쓰기 PIN 모달 (write-only lock) -->
+<div id="pinModal" class="modal" onclick="if(event.target===this) closePinModal()">
+  <div class="modal-box" style="max-width:360px;">
+    <h3>🔐 쓰기 전용 PIN 입력</h3>
+    <p style="color:#94a3b8; font-size:13px; margin-top:-4px; margin-bottom:14px; line-height:1.5;">
+      이 보드는 내용은 암호화되어 보이지만, 저장/수정/삭제는 쓰기 PIN 이 필요해냥! 🔒
+    </p>
+    <label class="modal-label" for="pinInput">쓰기 PIN (6자리 숫자)</label>
+    <input type="password" id="pinInput" class="modal-input" placeholder="••••••"
+           inputmode="numeric" pattern="\d{6}" maxlength="6" autocomplete="off">
+    <div id="pinErr" style="color:#fca5a5; font-size:12px; margin-top:-10px; margin-bottom:14px; display:none;"></div>
+    <div class="modal-buttons">
+      <button class="modal-btn modal-btn-cancel" onclick="closePinModal()">취소</button>
+      <button class="modal-btn modal-btn-save" id="pinSaveBtn" onclick="unlockWriteWithPin()">잠금 해제</button>
     </div>
   </div>
 </div>
 
 <script>
-const GITHUB_ID = "forsys02";
-const REPO = "srt-memos";
-let allMemos = [];
-let memosFileSha = null;
+"use strict";
 
-let decryptedToken = null;
-let serverPassword = null;
+/* ──────────────────────────────────────────────────────────────
+   [V22.34] 단일 파일 self-contained 메모 보드 (Zero-Knowledge)
+   · 메모 데이터는 이 HTML 안에 AES-256-GCM 암호문으로만 내장된다.
+   · GitHub 토큰은 이 페이지에 존재하지 않는다. 쓰기는 same-origin
+     로컬 미디어서버(LOCAL_API)에게만 위임한다.
+   · LOCAL_API 가 null 이면(GitHub Pages 사본) 완전한 읽기 전용.
+   ────────────────────────────────────────────────────────────── */
 
-async function decryptData(encryptedB64, password) {
-    const raw = atob(encryptedB64);
-    const bytes = new Uint8Array(raw.length);
-    for (let i = 0; i < raw.length; i++) {
-        bytes[i] = raw.charCodeAt(i);
-    }
-    const salt = bytes.slice(0, 16);
-    const iv = bytes.slice(16, 28);
-    const ciphertext = bytes.slice(28);
-    
-    const encoder = new TextEncoder();
-    const pwBytes = encoder.encode(password);
-    const baseKey = await crypto.subtle.importKey(
-        "raw", pwBytes, "PBKDF2", false, ["deriveKey"]
-    );
+const ENCRYPTED_DATA = {"salt": "sdvNko+IRzVmjbZIxucZWA==", "iv": "VeTje8etfD7s5ii2", "ciphertext": "ISNLMYkgi+bZ82vhpMg7B/w0+GOsOfVjFqgoIAp9dwLkNo4IiixWPxkHYH/nIVL81Ye43D64DGwZeOPAyUCbz/BbA6q5PhiCITf1hzjbpZpBJp5ua/eV9uViuw7Z0UbhK5czxqdnIhmdHvlqMIzwO3omuY7vfLp4RJBqZqxi7lMuKZKM6wiEGGQbZ5OpsJ45Y3VSz0u390PuDfyVr+EHiZKpjTBY4RE2iC1ui9CWPA=="};
+const LOCAL_API = null;
+const IS_READ_ONLY = !LOCAL_API;
+
+let board = null;
+let currentBookId = null;
+let boardKey = null;
+
+/* ── 암호화 ── */
+function _b64ToBytes(b64) {
+    const raw = atob(b64);
+    const out = new Uint8Array(raw.length);
+    for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+    return out;
+}
+
+async function decryptBoard(payload, password) {
+    const enc = new TextEncoder();
+    const baseKey = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']);
     const key = await crypto.subtle.deriveKey(
-        {
-            name: "PBKDF2",
-            salt: salt,
-            iterations: 100000,
-            hash: "SHA-256"
-        },
+        { name: 'PBKDF2', salt: _b64ToBytes(payload.salt), iterations: 100000, hash: 'SHA-256' },
         baseKey,
-        { name: "AES-GCM", length: 256 },
+        { name: 'AES-GCM', length: 256 },
         false,
-        ["decrypt"]
+        ['decrypt']
     );
+    let plain;
     try {
-        const decrypted = await crypto.subtle.decrypt(
-            { name: "AES-GCM", iv: iv, tagLength: 128 },
-            key,
-            ciphertext
-        );
-        return new TextDecoder().decode(decrypted);
+        plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: _b64ToBytes(payload.iv) }, key, _b64ToBytes(payload.ciphertext));
     } catch (e) {
-        throw new Error("비밀번호가 맞지 않거나 손상된 데이터다냥! 😿");
+        throw new Error('보안 키가 맞지 않거나 데이터가 손상되었어냥! 😿');
     }
+    return new TextDecoder().decode(plain);
 }
 
-async function encryptData(dataStr, password) {
-    const salt = window.crypto.getRandomValues(new Uint8Array(16));
-    const iv = window.crypto.getRandomValues(new Uint8Array(12));
-    
-    const encoder = new TextEncoder();
-    const pwBytes = encoder.encode(password);
-    const baseKey = await crypto.subtle.importKey(
-        "raw", pwBytes, "PBKDF2", false, ["deriveKey"]
-    );
-    const key = await crypto.subtle.deriveKey(
-        {
-            name: "PBKDF2",
-            salt: salt,
-            iterations: 100000,
-            hash: "SHA-256"
-        },
-        baseKey,
-        { name: "AES-GCM", length: 256 },
-        false,
-        ["encrypt"]
-    );
-    const encrypted = await crypto.subtle.encrypt(
-        { name: "AES-GCM", iv: iv, tagLength: 128 },
-        key,
-        encoder.encode(dataStr)
-    );
-    
-    const encryptedBytes = new Uint8Array(encrypted);
-    const payload = new Uint8Array(16 + 12 + encryptedBytes.length);
-    payload.set(salt, 0);
-    payload.set(iv, 16);
-    payload.set(encryptedBytes, 28);
-    
-    let binStr = "";
-    for (let i = 0; i < payload.length; i++) {
-        binStr += String.fromCharCode(payload[i]);
+/* ── 스키마 정규화 (Python _board_normalize 와 동일한 규칙) ── */
+function normalizeBoard(raw) {
+    if (Array.isArray(raw)) {
+        raw = { books: [{ id: 'default', name: '📁 일반', emoji: '📁', created_at: '', memos: raw }] };
     }
-    return btoa(binStr);
+    if (!raw || typeof raw !== 'object') raw = { books: [] };
+
+    const seen = new Set();
+    const books = [];
+    (raw.books || []).forEach(function (b, idx) {
+        if (!b || typeof b !== 'object') return;
+        let id = String(b.id || '').trim() || ('book_' + idx + '_' + Date.now());
+        while (seen.has(id)) id = id + '_' + idx;
+        seen.add(id);
+        const memos = (b.memos || []).filter(function (m) {
+            return m && typeof m === 'object' && String(m.id || '').trim();
+        }).map(function (m) {
+            return {
+                id: String(m.id).trim(),
+                title: String(m.title || '').trim() || '제목 없음',
+                content: String(m.content == null ? '' : m.content),
+                created_at: String(m.created_at || ''),
+                updated_at: String(m.updated_at || ''),
+                pinned: !!m.pinned
+            };
+        });
+        books.push({
+            id: id,
+            name: String(b.name || '').trim() || '이름 없는 메모장',
+            emoji: String(b.emoji || '📁'),
+            created_at: String(b.created_at || ''),
+            memos: memos
+        });
+    });
+    if (!books.length) books.push({ id: 'default', name: '📁 일반', emoji: '📁', created_at: '', memos: [] });
+    return { v: 2, books: books };
 }
 
-function parseHash() {
-    const hash = window.location.hash.substring(1);
-    const params = new URLSearchParams(hash);
-    return {
-        key: params.get("key"),
-        token: params.get("token")
-    };
+/* ── XSS 방어 ── */
+function escapeHtml(str) {
+    if (str == null) return '';
+    return String(str)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
 }
 
-async function init() {
-    const hashParams = parseHash();
-    let urlKey = hashParams.key;
-    let urlToken = hashParams.token;
-    
-    if (!urlKey) {
-        urlKey = localStorage.getItem("srt_board_key");
-    }
-    if (!urlToken) {
-        urlToken = localStorage.getItem("srt_board_enc_token");
-    }
-    
-    if (urlKey && urlToken) {
-        serverPassword = urlKey;
-        try {
-            const decodedTokenParam = decodeURIComponent(urlToken);
-            decryptedToken = await decryptData(decodedTokenParam, serverPassword);
-            
-            localStorage.setItem("srt_board_key", serverPassword);
-            localStorage.setItem("srt_board_enc_token", decodedTokenParam);
-            
-            document.getElementById("lockScreen").style.display = "none";
-            document.getElementById("mainContent").classList.remove("blur-bg");
-            
-            history.replaceState(null, '', window.location.pathname);
-            loadMemos();
-        } catch (e) {
-            showLockScreen("비밀번호 또는 인증 토큰 복호화 실패했어냥! 😿");
+/* ── 유틸 ── */
+function getCookie(name) {
+    const m = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/([.$?*|{}()[\]\\\/+^])/g, '\\$1') + '=([^;]*)'));
+    return m ? decodeURIComponent(m[1]) : '';
+}
+function nowStr() {
+    const d = new Date(), p = function (n) { return String(n).padStart(2, '0'); };
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
+}
+function newId() { return String(Date.now()) + '_' + Math.floor(Math.random() * 1000); }
+function showError(msg) {
+    const el = document.getElementById('errBanner');
+    el.textContent = msg;
+    el.classList.add('show');
+    setTimeout(function () { el.classList.remove('show'); }, 6000);
+}
+
+/* ── 잠금 해제 ── */
+async function submitUnlock() {
+    const keyInput = document.getElementById('manualKey').value.trim();
+    const errEl = document.getElementById('errorMsg');
+    const btn = document.getElementById('unlockBtn');
+    if (!keyInput) { errEl.textContent = '보안 키를 입력해줘냥! 🔒'; errEl.style.display = 'block'; return; }
+    btn.disabled = true; btn.innerText = '복호화 중... ⏳';
+    errEl.style.display = 'none';
+    try {
+        const plain = await decryptBoard(ENCRYPTED_DATA, keyInput);
+        board = normalizeBoard(JSON.parse(plain));
+        boardKey = keyInput;
+        sessionStorage.setItem('srt_board_key', keyInput);
+        document.getElementById('lockScreen').style.display = 'none';
+        document.getElementById('mainContent').classList.remove('blur-bg');
+        if (!currentBookId || !board.books.some(function (b) { return b.id === currentBookId; })) {
+            currentBookId = board.books[0].id;
         }
-    } else {
-        showLockScreen();
+        refreshWriteBanner();
+        renderAll();
+    } catch (e) {
+        errEl.textContent = e.message || '복호화에 실패했어냥! 😿';
+        errEl.style.display = 'block';
+        btn.disabled = false; btn.innerText = '잠금 해제 🔓';
     }
-}
-
-function showLockScreen(errorMsg = "") {
-    document.getElementById("lockScreen").style.display = "flex";
-    document.getElementById("mainContent").classList.add("blur-bg");
-    const errorEl = document.getElementById("errorMsg");
-    if (errorMsg) {
-        errorEl.innerText = errorMsg;
-        errorEl.style.display = "block";
-    } else {
-        errorEl.style.display = "none";
-    }
-}
-
-async function submitManualLogin() {
-    const pwInput = document.getElementById("manualPassword").value.trim();
-    const tokenInput = document.getElementById("manualToken").value.trim();
-    
-    if (!pwInput) {
-        alert("비밀번호를 입력해줘냥! 🔒");
-        return;
-    }
-    
-    serverPassword = pwInput;
-    if (tokenInput) {
-        decryptedToken = tokenInput;
-        try {
-            const encToken = await encryptData(decryptedToken, serverPassword);
-            localStorage.setItem("srt_board_key", serverPassword);
-            localStorage.setItem("srt_board_enc_token", encToken);
-        } catch (e) {
-            console.error(e);
-        }
-    } else {
-        const savedEncToken = localStorage.getItem("srt_board_enc_token");
-        if (savedEncToken) {
-            try {
-                decryptedToken = await decryptData(savedEncToken, serverPassword);
-                localStorage.setItem("srt_board_key", serverPassword);
-            } catch (e) {
-                showLockScreen("비밀번호가 올바르지 않거나 저장된 토큰 복호화에 실패했다냥! 😿");
-                return;
-            }
-        } else {
-            decryptedToken = null;
-        }
-    }
-    
-    document.getElementById("lockScreen").style.display = "none";
-    document.getElementById("mainContent").classList.remove("blur-bg");
-    loadMemos();
 }
 
 function logout() {
-    if (confirm("정말 로그아웃 하시겠어냥? 🔒")) {
-        localStorage.removeItem("srt_board_key");
-        localStorage.removeItem("srt_board_enc_token");
-        location.reload();
-    }
+    sessionStorage.removeItem('srt_board_key');
+    location.reload();
 }
 
-async function loadMemos() {
-    const fileUrl = `https://api.github.com/repos/${GITHUB_ID}/${REPO}/contents/memos.json`;
-    const headers = {};
-    if (decryptedToken) {
-        headers['Authorization'] = `token ${decryptedToken}`;
-    }
-    headers['Accept'] = 'application/vnd.github+json';
-    
-    try {
-        const res = await fetch(fileUrl + '?t=' + Date.now(), { headers });
-        if (res.status === 404) {
-            allMemos = [];
-            renderMemos(allMemos);
-            return;
-        }
-        const data = await res.json();
-        memosFileSha = data.sha;
-        const contentDecoded = atob(data.content.replace(/\r\n/g, ''));
-        const decodedText = await decryptData(contentDecoded, serverPassword);
-        allMemos = JSON.parse(decodedText);
-        renderMemos(allMemos);
-    } catch (err) {
-        console.error(err);
-        fetch(`https://raw.githubusercontent.com/${GITHUB_ID}/${REPO}/main/memos.json?t=` + Date.now())
-            .then(res => res.text())
-            .then(async dataText => {
-                try {
-                    let encryptedData = dataText;
-                    try {
-                        const parsedJson = JSON.parse(dataText);
-                        if (parsedJson && parsedJson.content) {
-                            encryptedData = parsedJson.content;
-                        }
-                    } catch(e) {}
-                    
-                    const decodedText = await decryptData(encryptedData.trim(), serverPassword);
-                    allMemos = JSON.parse(decodedText);
-                    renderMemos(allMemos);
-                } catch(e) {
-                    showLockScreen("비밀번호가 틀렸거나 데이터 복호화에 실패했어냥! 😿");
-                }
-            })
-            .catch(e => {
-                document.getElementById("memoGrid").innerHTML = "<p>데이터를 로드하는 데 실패했어냥... 😿</p>";
-            });
-    }
-}
-
-function renderMemos(memos) {
-    const grid = document.getElementById("memoGrid");
-    grid.innerHTML = "";
-    
-    const addBtn = document.querySelector(".add-btn");
-    if (!decryptedToken) {
-        if (addBtn) addBtn.style.display = "none";
+function init() {
+    if (IS_READ_ONLY) {
+        document.querySelectorAll('.rw-only').forEach(function (el) { el.style.display = 'none'; });
+        document.getElementById('roBanner').classList.add('show');
     } else {
-        if (addBtn) addBtn.style.display = "block";
+        // [V22.34] 쓰기 가능 사본(/memo)인데 PIN 이 없으면 '잠김' 배너를 띄워 안내한다 🔐
+        refreshWriteBanner();
     }
-    
-    if (memos.length === 0) {
-        grid.innerHTML = "<p style='color: #64748b; grid-column: 1/-1; text-align: center;'>작성된 메모가 없어냥! 📝</p>";
+    const hash = window.location.hash.replace(/^#/, '');
+    const params = new URLSearchParams(hash);
+    const fromUrl = params.get('key');
+    const fromSession = sessionStorage.getItem('srt_board_key');
+    const key = fromUrl || fromSession;
+    if (key) {
+        document.getElementById('manualKey').value = key;
+        submitUnlock();
+        // 키는 URL 프래그먼트에만 존재. 히스토리에 남기지 않는다 🛡️
+        if (fromUrl) {
+            history.replaceState(null, '', window.location.pathname + window.location.search);
+        }
+    }
+}
+
+/* ── 렌더링 ── */
+function currentBook() {
+    if (!board) return null;
+    for (let i = 0; i < board.books.length; i++) {
+        if (board.books[i].id === currentBookId) return board.books[i];
+    }
+    return board.books[0] || null;
+}
+
+function renderAll() {
+    renderBooks();
+    renderMemos();
+}
+
+function renderBooks() {
+    const list = document.getElementById('bookList');
+    list.innerHTML = '';
+    board.books.forEach(function (b) {
+        const div = document.createElement('div');
+        div.className = 'book-item' + (b.id === currentBookId ? ' active' : '');
+        div.setAttribute('data-book-id', escapeHtml(b.id));
+        div.setAttribute('role', 'button');
+        div.setAttribute('tabindex', '0');
+        div.innerHTML =
+            '<span class="book-emoji">' + escapeHtml(b.emoji) + '</span>' +
+            '<span class="book-name">' + escapeHtml(b.name) + '</span>' +
+            '<span class="book-count">' + b.memos.length + '</span>';
+        list.appendChild(div);
+    });
+}
+
+function renderMemos() {
+    const grid = document.getElementById('memoGrid');
+    const book = currentBook();
+    grid.innerHTML = '';
+    if (!book) return;
+
+    const q = document.getElementById('search').value.trim().toLowerCase();
+    let memos = book.memos.slice();
+    if (q) {
+        memos = memos.filter(function (m) {
+            return m.title.toLowerCase().indexOf(q) >= 0 || m.content.toLowerCase().indexOf(q) >= 0;
+        });
+    }
+    memos.sort(function (a, b) {
+        if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+        return (b.created_at || '').localeCompare(a.created_at || '');
+    });
+
+    if (!memos.length) {
+        grid.innerHTML = '<div class="empty-hint">' +
+            (q ? '🔍 검색 결과가 없네냥!' : (IS_READ_ONLY ? '📭 아직 메모가 없네냥!' : '📭 아직 메모가 없네냥! 위 "+ 새 메모"를 눌러줘!')) +
+            '</div>';
         return;
     }
-    memos.forEach(m => {
-        const card = document.createElement("div");
-        card.className = "card";
-        
-        const actionHtml = decryptedToken ? `
-            <div class="card-actions">
-                <button class="action-icon" onclick="openEditMemoModal('${m.id}')" title="수정">✏️</button>
-                <button class="action-icon action-icon-delete" onclick="deleteMemo('${m.id}')" title="삭제">🗑️</button>
-            </div>
-        ` : '';
-        
-        card.innerHTML = `
-            <div class="card-header">
-                <h3 class="card-title">${escapeHtml(m.title)}</h3>
-                ${actionHtml}
-            </div>
-            <div class="card-date">📅 ${m.created_at}</div>
-            <div class="card-body">${escapeHtml(m.content)}</div>
-        `;
+
+    memos.forEach(function (m) {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.setAttribute('data-mid', escapeHtml(m.id));
+
+        let actions = '';
+        if (!IS_READ_ONLY) {
+            actions =
+                '<div class="card-actions">' +
+                '<button class="icon-btn' + (m.pinned ? ' on' : '') + '" data-act="pin" title="고정">' + (m.pinned ? '📌' : '📍') + '</button>' +
+                '<button class="icon-btn" data-act="edit" title="수정">✏️</button>' +
+                '<button class="icon-btn danger" data-act="del" title="삭제">🗑️</button>' +
+                '</div>';
+        }
+        const bodyClass = m.content.length > 420 ? 'card-body clamped' : 'card-body';
+        // ✏️ 고쳐진 메모는 '수정 시각' 을 함께 보여준다 (안 그러면 언제 손댔는지 알 수 없다)
+        const updLine = m.updated_at
+            ? '<span style="color:#fcd34d;"> ✏️ ' + escapeHtml(m.updated_at) + '</span>'
+            : '';
+
+        card.innerHTML =
+            '<div class="card-header">' +
+            '<h3 class="card-title">' + escapeHtml(m.title) + '</h3>' + actions +
+            '</div>' +
+            '<div class="card-date">📅 ' + escapeHtml(m.created_at) + updLine + '</div>' +
+            '<div class="' + bodyClass + '">' + escapeHtml(m.content) + '</div>';
         grid.appendChild(card);
     });
 }
 
-function openNewMemoModal() {
-    document.getElementById("modalTitleText").innerText = "➕ 새 메모 작성";
-    document.getElementById("editingMemoId").value = "";
-    document.getElementById("memoTitleInput").value = "";
-    document.getElementById("memoContentInput").value = "";
-    document.getElementById("memoModal").style.display = "flex";
-    document.getElementById("memoTitleInput").focus();
+/* ── 이벤트 위임 (id 를 인라인 JS 에 넣지 않아 XSS 원천 차단) 🛡️ ── */
+document.getElementById('bookList').addEventListener('click', function (e) {
+    const item = e.target.closest('.book-item');
+    if (!item) return;
+    currentBookId = item.getAttribute('data-book-id');
+    renderAll();
+});
+document.getElementById('bookList').addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const item = e.target.closest('.book-item');
+    if (!item) return;
+    e.preventDefault();
+    currentBookId = item.getAttribute('data-book-id');
+    renderAll();
+});
+document.getElementById('memoGrid').addEventListener('click', function (e) {
+    const btn = e.target.closest('[data-act]');
+    if (!btn) return;
+    const mid = btn.closest('.card').getAttribute('data-mid');
+    const act = btn.getAttribute('data-act');
+    if (act === 'edit') openMemoModal(mid);
+    else if (act === 'del') deleteMemo(mid);
+    else if (act === 'pin') togglePin(mid);
+});
+
+/* ── 로컬 서버 API (쓰기 전담) ── */
+/* [V22.34] 🛡️ 쓰기 이중 게이트
+   - X-Server-Key : 서버 키 (다만 이건 페이지 HTML 안에 평문으로 박혀 있어 '화면을 본 사람'에게 자동 지급됨)
+   - X-Board-PIN  : 쓰기 전용 PIN (6자리) → 화면에 있는 사람이 아무리 서버 키를 가져도 못 고침
+   둘 다 있어야 쓰기가 통과한다. */
+async function api(path, payload) {
+    if (IS_READ_ONLY) throw new Error('읽기 전용 모드라 저장할 수 없어냥! 🔒');
+    if (!hasWritePin()) {
+        // 🛡️ 배너를 여기서도 갱신한다. init() 을 못 거친 진입 경로에서도
+        //    '왜 안 되지?' 하지 않도록 '잠금' 상태를 화면에 정합하게 맞춘다.
+        refreshWriteBanner();
+        openPinModal();
+        throw new Error('쓰기 PIN 을 먼저 입력해줘! 🔐');
+    }
+    const headers = { 'Content-Type': 'application/json' };
+    const sk = getCookie('srv_k');
+    if (sk) headers['X-Server-Key'] = sk;
+    headers['X-Board-PIN'] = getWritePin();
+    const res = await fetch(LOCAL_API + path, {
+        method: 'POST', headers: headers, body: JSON.stringify(payload)
+    });
+    let data = {};
+    try { data = await res.json(); } catch (err) { data = {}; }
+    if (data.need_pin) {
+        // 서버가 'PIN 이 틀렸거나 잠금' 이라고 했어 → 저장한 PIN 을 버리고 다시 입력받는다 🛡️
+        clearWritePin();
+        refreshWriteBanner();
+        showPinError(data.error || '쓰기 PIN 이 필요해! 🔒');
+        openPinModal();
+        throw new Error(data.error || '쓰기 PIN 이 필요해! 🔒');
+    }
+    if (!res.ok || !data.success) {
+        throw new Error(data.error || ('HTTP ' + res.status + ' 저장 실패야냥! 😿'));
+    }
+    if (data.board) {
+        board = normalizeBoard(data.board);
+        renderAll();
+    }
+    return data;
 }
 
-function openEditMemoModal(memoId) {
-    const memo = allMemos.find(m => m.id === memoId);
-    if (!memo) return;
-    document.getElementById("modalTitleText").innerText = "✏️ 메모 수정";
-    document.getElementById("editingMemoId").value = memoId;
-    document.getElementById("memoTitleInput").value = memo.title;
-    document.getElementById("memoContentInput").value = memo.content;
-    document.getElementById("memoModal").style.display = "flex";
-    document.getElementById("memoContentInput").focus();
+/* ── 쓰기 PIN 상태 (세션 한정, 탭을 닫으면 사라짐) ── */
+const PIN_STORE_KEY = 'srt_board_pin';
+function getWritePin() { return sessionStorage.getItem(PIN_STORE_KEY) || ''; }
+function setWritePin(p) { try { sessionStorage.setItem(PIN_STORE_KEY, p); } catch (e) {} }
+function clearWritePin() { try { sessionStorage.removeItem(PIN_STORE_KEY); } catch (e) {} }
+function hasWritePin() { return !!getWritePin(); }
+
+function refreshWriteBanner() {
+    const el = document.getElementById('wrBanner');
+    if (!el || IS_READ_ONLY) return;
+    el.classList.toggle('show', !hasWritePin());
 }
 
-function closeMemoModal() {
-    document.getElementById("memoModal").style.display = "none";
+function openPinModal() {
+    if (IS_READ_ONLY) return;
+    const el = document.getElementById('pinModal');
+    if (el) el.style.display = 'flex';
+    const inp = document.getElementById('pinInput');
+    if (inp) { inp.value = ''; setTimeout(function () { inp.focus(); }, 60); }
 }
 
-async function pushMemosToGithub(updatedMemos) {
-    if (!decryptedToken) {
-        alert("깃허브 쓰기 토큰 권한이 없어냥! 😿");
+function closePinModal() {
+    const el = document.getElementById('pinModal');
+    if (el) el.style.display = 'none';
+    const e2 = document.getElementById('pinErr');
+    if (e2) e2.style.display = 'none';
+}
+
+function showPinError(msg) {
+    const e2 = document.getElementById('pinErr');
+    if (!e2) return;
+    e2.textContent = msg || '';
+    e2.style.display = msg ? 'block' : 'none';
+}
+
+async function unlockWriteWithPin() {
+    const inp = document.getElementById('pinInput');
+    const val = (inp ? inp.value : '').trim();
+    if (!/^\d{6}$/.test(val)) {
+        showPinError('6자리 숫자를 입력해줘! 🔢');
         return;
     }
-    const fileUrl = `https://api.github.com/repos/${GITHUB_ID}/${REPO}/contents/memos.json`;
-    const headers = {
-        'Authorization': `token ${decryptedToken}`,
-        'Accept': 'application/vnd.github+json',
-        'Content-Type': 'application/json'
-    };
-    
+    const btn = document.getElementById('pinSaveBtn');
+    btn.disabled = true; btn.innerText = '확인 중...';
     try {
-        const memosStr = JSON.stringify(updatedMemos, null, 2);
-        const encryptedMemos = await encryptData(memosStr, serverPassword);
-        const contentEncoded = btoa(encryptedMemos);
-        
-        try {
-            const getRes = await fetch(fileUrl + '?t=' + Date.now(), { headers: { 'Authorization': `token ${decryptedToken}` } });
-            const getData = await getRes.json();
-            memosFileSha = getData.sha;
-        } catch (e) {
-            console.error("Failed to sync latest SHA before push:", e);
-        }
-        
-        const payload = {
-            "message": "Update encrypted memos.json via Web Editor",
-            "content": contentEncoded,
-            "sha": memosFileSha
-        };
-        
-        const res = await fetch(fileUrl, {
-            method: 'PUT',
-            headers: headers,
-            body: JSON.stringify(payload)
+        // 🛡️ 서버에서 먼저 검증한다. 그래야 '남은 시도 N회' 와 '5분 잠금'을
+        //    사용자가 즉시 보고, 무차별 대작전으로 잠금이 걸리는 것도 막을 수 있다.
+        const headers = { 'Content-Type': 'application/json' };
+        const sk = getCookie('srv_k');
+        if (sk) headers['X-Server-Key'] = sk;
+        const res = await fetch(LOCAL_API + '/verify_pin', {
+            method: 'POST', headers: headers, body: JSON.stringify({ pin: val })
         });
-        
-        if (res.ok) {
-            const resData = await res.json();
-            memosFileSha = resData.content.sha;
-            allMemos = updatedMemos;
-            renderMemos(allMemos);
-            closeMemoModal();
-        } else {
-            const errData = await res.json();
-            alert("깃허브 저장소 업로드 실패냥! 😿 에러: " + (errData.message || res.statusText));
+        let data = {};
+        try { data = await res.json(); } catch (err) { data = {}; }
+        if (!res.ok || !data.success) {
+            // 🛡️ 승인 안 됐는데 '잠금 해제' 로 보이면 안 된다 → 배너를 '잠김' 으로 되돌린다
+            clearWritePin();
+            refreshWriteBanner();
+            showPinError(data.error || '쓰기 PIN 이 올바르지 않아! 🔒');
+            btn.disabled = false; btn.innerText = '잠금 해제';
+            return;
         }
-    } catch(e) {
-        alert("오류 발생냥: " + e.message);
+        setWritePin(val);
+        closePinModal();
+        refreshWriteBanner();
+    } catch (e) {
+        showPinError('서버에 연결할 수 없네냥! 😿 ' + (e.message || ''));
     }
+    btn.disabled = false; btn.innerText = '잠금 해제';
 }
+
+/* ── 메모 모달 ── */
+let editingMemoId = '';
+let editingMemoBookId = '';
+
+function fillBookSelect() {
+    const sel = document.getElementById('memoBookSelect');
+    sel.innerHTML = '';
+    board.books.forEach(function (b) {
+        const opt = document.createElement('option');
+        opt.value = b.id;
+        opt.textContent = b.emoji + ' ' + b.name;
+        sel.appendChild(opt);
+    });
+}
+
+function openMemoModal(memoId) {
+    const book = currentBook();
+    if (!book) return;
+    editingMemoId = memoId || '';
+    editingMemoBookId = book.id;
+    fillBookSelect();
+    document.getElementById('memoBookSelect').value = book.id;
+
+    if (memoId) {
+        const m = book.memos.find(function (x) { return x.id === memoId; });
+        if (!m) return;
+        document.getElementById('memoModalTitle').innerText = '✏️ 메모 수정';
+        document.getElementById('memoTitleInput').value = m.title;
+        document.getElementById('memoContentInput').value = m.content;
+    } else {
+        document.getElementById('memoModalTitle').innerText = '➕ 새 메모 작성';
+        document.getElementById('memoTitleInput').value = '';
+        document.getElementById('memoContentInput').value = '';
+    }
+    document.getElementById('memoModal').style.display = 'flex';
+    document.getElementById('memoTitleInput').focus();
+}
+function closeMemoModal() { document.getElementById('memoModal').style.display = 'none'; }
 
 async function saveMemo() {
-    const title = document.getElementById("memoTitleInput").value.trim();
-    const content = document.getElementById("memoContentInput").value.trim();
-    const memoId = document.getElementById("editingMemoId").value;
-    
-    if (!title) {
-        alert("제목을 입력해줘냥! 📝");
-        return;
-    }
-    if (!content) {
-        alert("내용을 입력해줘냥! 📝");
-        return;
-    }
-    
-    const saveBtn = document.getElementById("modalSaveBtn");
-    saveBtn.disabled = true;
-    saveBtn.innerText = "저장 중...";
-    
+    const title = document.getElementById('memoTitleInput').value.trim();
+    const content = document.getElementById('memoContentInput').value.trim();
+    const bookId = document.getElementById('memoBookSelect').value || currentBookId;
+    if (!title) { alert('제목을 입력해줘냥! 📝'); return; }
+    if (!content) { alert('내용을 입력해줘냥! 📝'); return; }
+
+    const btn = document.getElementById('memoSaveBtn');
+    btn.disabled = true; btn.innerText = '저장 중...';
     try {
-        let updated = [...allMemos];
-        const now = new Date();
-        const yyyy = now.getFullYear();
-        const mm = String(now.getMonth() + 1).padStart(2, '0');
-        const dd = String(now.getDate()).padStart(2, '0');
-        const hh = String(now.getHours()).padStart(2, '0');
-        const mi = String(now.getMinutes()).padStart(2, '0');
-        const ss = String(now.getSeconds()).padStart(2, '0');
-        const nowStr = `${yyyy}-${mm}-${dd} ${hh}:${mi}:${ss}`;
-        
-        if (memoId) {
-            updated = updated.map(m => {
-                if (m.id === memoId) {
-                    return { ...m, title, content, created_at: nowStr };
-                }
-                return m;
-            });
-        } else {
-            const newId = new Date().getTime() + "_" + Math.floor(Math.random() * 1000);
-            updated.unshift({
-                id: newId,
-                title,
-                content,
-                created_at: nowStr
-            });
-        }
-        
-        await pushMemosToGithub(updated);
+        await api('/save', {
+            book_id: bookId,
+            from_book_id: editingMemoBookId,
+            memo_id: editingMemoId,
+            title: title,
+            content: content
+        });
+        currentBookId = bookId;
+        closeMemoModal();
     } catch (e) {
-        alert("오류 발생냥: " + e.message);
+        alert('저장 실패냥! 😿 ' + e.message);
     } finally {
-        saveBtn.disabled = false;
-        saveBtn.innerText = "저장하기";
+        btn.disabled = false; btn.innerText = '저장하기';
     }
 }
 
 async function deleteMemo(memoId) {
-    if (!confirm("정말 이 글을 삭제할까냥? 🗑️")) return;
-    
+    if (!confirm('정말 이 메모를 삭제할까냥? 🗑️')) return;
     try {
-        const updated = allMemos.filter(m => m.id !== memoId);
-        await pushMemosToGithub(updated);
+        await api('/delete', { book_id: currentBookId, memo_id: memoId });
     } catch (e) {
-        alert("삭제 실패냥: " + e.message);
+        alert('삭제 실패냥! 😿 ' + e.message);
     }
 }
 
-function filterMemos() {
-    const query = document.getElementById("search").value.toLowerCase();
-    const filtered = allMemos.filter(m => 
-        m.title.toLowerCase().includes(query) || 
-        m.content.toLowerCase().includes(query)
-    );
-    renderMemos(filtered);
+async function togglePin(memoId) {
+    try {
+        await api('/pin_toggle', { book_id: currentBookId, memo_id: memoId });
+    } catch (e) {
+        alert('고정 실패냥! 😿 ' + e.message);
+    }
 }
 
-function escapeHtml(str) {
-    if (!str) return "";
-    return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+/* ── 메모 장 모달 ── */
+let editingBookId = '';
+
+function openBookModal(bookId) {
+    editingBookId = bookId || '';
+    const bk = bookId ? board.books.find(function (b) { return b.id === bookId; }) : null;
+    document.getElementById('bookModalTitle').innerText = bk ? '✏️ 메모 장 이름 변경' : '➕ 새 메모 장';
+    document.getElementById('bookEmojiInput').value = bk ? bk.emoji : '📁';
+    document.getElementById('bookNameInput').value = bk ? bk.name : '';
+    document.getElementById('bookModal').style.display = 'flex';
+    document.getElementById('bookNameInput').focus();
+}
+function closeBookModal() { document.getElementById('bookModal').style.display = 'none'; }
+
+async function saveBook() {
+    const name = document.getElementById('bookNameInput').value.trim();
+    const emoji = document.getElementById('bookEmojiInput').value.trim() || '📁';
+    if (!name) { alert('이름을 입력해줘냥! 📚'); return; }
+    const btn = document.getElementById('bookSaveBtn');
+    btn.disabled = true; btn.innerText = '저장 중...';
+    try {
+        const data = await api('/book_save', { book_id: editingBookId, name: name, emoji: emoji });
+        if (!editingBookId && data.book_id) currentBookId = data.book_id;
+        closeBookModal();
+    } catch (e) {
+        alert('저장 실패냥! 😿 ' + e.message);
+    } finally {
+        btn.disabled = false; btn.innerText = '저장하기';
+    }
+}
+
+async function deleteBook(bookId) {
+    if (!bookId) { alert('먼저 삭제할 메모 장을 선택해줘냥! 📚'); return; }
+    const bk = board.books.find(function (b) { return b.id === bookId; });
+    if (!bk) return;
+    if (!confirm('메모 장 "' + bk.name + '" 을(를) 삭제할까냥?\n안에 든 메모 ' + bk.memos.length + '개도 함께 사라져! 🗑️')) return;
+    try {
+        await api('/book_delete', { book_id: bookId });
+        if (currentBookId === bookId) currentBookId = board.books[0] ? board.books[0].id : null;
+        renderAll();
+    } catch (e) {
+        alert('삭제 실패냥! 😿 ' + e.message);
+    }
 }
 
 init();
 </script>
 </body>
 </html>
+<!-- __BOARD_HTML_END__ -->
