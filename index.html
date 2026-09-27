@@ -210,6 +210,18 @@
   <div class="lock-box">
     <h2>🔒 Private Memo Board</h2>
     <p>이 보드는 <b>AES-256-GCM</b> 으로 암호화되어 있어냥.<br>보안 키를 입력해야 내용이 풀려! 🐱</p>
+    <!-- 🌐 [보안 컨텍스트 경고] crypto.subtle 는 HTTPS / localhost 에서만 존재한다.
+         LAN IP(http://192.168.x.x)로 열면 undefined → 'importKey of undefined' 크립틱 오류가 났다.
+         그 상황이면 이 안내를 띄우고 입력 자체를 막는다. 🛡️🐛 -->
+    <div id="insecureNotice" style="display:none;margin:14px 0;padding:14px;border-radius:12px;background:rgba(255,120,120,.14);border:1px solid rgba(255,120,120,.5);text-align:left;line-height:1.75;font-size:14px;">
+      <b>🌐 이 주소로는 암호화를 풀 수 없어! (보안상 브라우저가 막았어)</b><br>
+      브라우저는 <b>HTTPS</b> 또는 <b>localhost</b> 에서만 암호화 기능(HTTPS/🔐 WebCrypto)을 허용해.<br>
+      지금 주소(<span id="insecureHost"></span>)는 그 대상이 아니야.<br><br>
+      <b>👉 이렇게 해줘!</b><br>
+      ① <b>같은 PC 브라우저</b> → <code id="insecureLocalUrl">http://127.0.0.1:PORT/memo</code> 로 열어줘 🖥️<br>
+      ② <b>GitHub Pages 주소</b>(<code>https://사용자명.github.io/srt-memos/</code>)로 열면 어디서든 HTTPS 로 동작해 🌐<br>
+      ③ <b>휴대폰</b>에서 볼 때도 반드시 <b>HTTPS 주소</b>를 써야 해 📱
+    </div>
     <input type="password" id="manualKey" class="lock-input" placeholder="보안 키 입력..." autocomplete="off">
     <button class="lock-btn" id="unlockBtn" onclick="submitUnlock()">잠금 해제 🔓</button>
     <p id="errorMsg" class="err-msg"></p>
@@ -306,13 +318,16 @@
    · LOCAL_API 가 null 이면(GitHub Pages 사본) 완전한 읽기 전용.
    ────────────────────────────────────────────────────────────── */
 
-const ENCRYPTED_DATA = {"salt": "sdvNko+IRzVmjbZIxucZWA==", "iv": "VeTje8etfD7s5ii2", "ciphertext": "ISNLMYkgi+bZ82vhpMg7B/w0+GOsOfVjFqgoIAp9dwLkNo4IiixWPxkHYH/nIVL81Ye43D64DGwZeOPAyUCbz/BbA6q5PhiCITf1hzjbpZpBJp5ua/eV9uViuw7Z0UbhK5czxqdnIhmdHvlqMIzwO3omuY7vfLp4RJBqZqxi7lMuKZKM6wiEGGQbZ5OpsJ45Y3VSz0u390PuDfyVr+EHiZKpjTBY4RE2iC1ui9CWPA=="};
+const ENCRYPTED_DATA = {"salt": "2V/s7zU1BfIBBHuOwtcg0w==", "iv": "z0cDX3ig5jdAMf82", "ciphertext": "8HtxJ17TmKR4zAJYTBqlZoOXoKL1sGvfUa0wOh8COHXKc+Y+hx6xEyna8gYdR/ZzAwXdMAoazLYbLmvoA5239ZnHhL6LeKo5Sw54erR3FIXCQjdY/XTYgLXpiwFHpeNY5Bhp1IvsReZMmDAxY2PNdSBDMxTAytDcVg+eg9B1t3XmqKCQq/gaVvJfVbtPAPurc5EMENPgtegoAUTTM2ncPRbVz9ob+xCy8cwGs++ZD6PHNWDV1JAqR/knQMISfc4yZLu7WPKzzVtsAm14EJ9ht9nxklP1x65LGjY0pxm/hPyp16fODL8JYYLjSofFSexh685UOgS4CPBS3TVtDTQ6Syt4rsuYI7BS0sGa4GQ0X1Odwggf9fvN7LNtEZJbQaj0XPZ5uDyBaeauOnOTgLh0NZM4V+LFlGEpJcbVivKH6R0SV44ca6I+zQ=="};
 const LOCAL_API = null;
 const IS_READ_ONLY = !LOCAL_API;
 
 let board = null;
 let currentBookId = null;
 let boardKey = null;
+// 🐙📇 [V22.35] '/media' 메모 플리 카드가 넘겨준 장/메모 딥링크 (해시 프래그먼트)
+let deepBookId = null;
+let deepMemoId = null;
 
 /* ── 암호화 ── */
 function _b64ToBytes(b64) {
@@ -320,6 +335,32 @@ function _b64ToBytes(b64) {
     const out = new Uint8Array(raw.length);
     for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
     return out;
+}
+
+/* 🌐 [보안 컨텍스트 방어막] crypto.subtle 는 HTTPS 또는 localhost 에서만 존재한다.
+   LAN IP 로 http:// 열면 undefined → "Cannot read properties of undefined (reading 'importKey')"
+   라는 뜻도 없는 크립틱 오류만 남았다. 여기서 먼저 잡아 안내를 띄운다. 🛡️🐛 */
+const HAS_WEBCRYPTO = !!(window.crypto && window.crypto.subtle);
+
+function _blockIfNoWebCrypto() {
+    if (HAS_WEBCRYPTO) return false;
+    const notice = document.getElementById('insecureNotice');
+    if (notice) notice.style.display = 'block';
+    const hostEl = document.getElementById('insecureHost');
+    if (hostEl) hostEl.textContent = location.host;
+    // 'localhost'/'127.0.0.1' 은 정상인데 subtle 이 없을 수 있는 극단 상황 안내용 기본값
+    const localEl = document.getElementById('insecureLocalUrl');
+    if (localEl) {
+        const p = location.port ? (':' + location.port) : '';
+        localEl.textContent = 'http://127.0.0.1' + p + '/memo';
+    }
+    const input = document.getElementById('manualKey');
+    const btn = document.getElementById('unlockBtn');
+    if (input) input.disabled = true;
+    if (btn) btn.disabled = true;
+    const err = document.getElementById('errorMsg');
+    if (err) { err.style.display = 'block'; err.textContent = '암호화 기능(HTTPS)을 쓸 수 없는 주소라 풀 수 없어! 🛡️'; }
+    return true;
 }
 
 async function decryptBoard(payload, password) {
@@ -406,6 +447,8 @@ function showError(msg) {
 
 /* ── 잠금 해제 ── */
 async function submitUnlock() {
+    // 🛡️ 비보안 컨텍스트면 복호화 시도조차 하지 않는다 (undefined 크립틱 오류 방지)
+    if (_blockIfNoWebCrypto()) return;
     const keyInput = document.getElementById('manualKey').value.trim();
     const errEl = document.getElementById('errorMsg');
     const btn = document.getElementById('unlockBtn');
@@ -420,10 +463,18 @@ async function submitUnlock() {
         document.getElementById('lockScreen').style.display = 'none';
         document.getElementById('mainContent').classList.remove('blur-bg');
         if (!currentBookId || !board.books.some(function (b) { return b.id === currentBookId; })) {
-            currentBookId = board.books[0].id;
+            // 🐙📇 [V22.35] 메모 플리에서 '#book=<id>' 로 들어온 경우 그 장을 연다.
+            //    (요청한 장이 없으면 조용히 첫 장으로 넘어가지 말고 첫 장으로 되돌린다)
+            let wantBook = currentBookId;
+            if (!wantBook && deepBookId && board.books.some(function (b) { return b.id === deepBookId; })) {
+                wantBook = deepBookId;
+            }
+            currentBookId = wantBook || board.books[0].id;
         }
         refreshWriteBanner();
         renderAll();
+        deepBookId = null;
+        deepMemoId = null;
     } catch (e) {
         errEl.textContent = e.message || '복호화에 실패했어냥! 😿';
         errEl.style.display = 'block';
@@ -437,6 +488,9 @@ function logout() {
 }
 
 function init() {
+    // 🌐 [보안 컨텍스트] HTTPS/localhost 아니면 복호화 자체가 불가능하다.
+    //    딥링크로 키가 들어와도 바로 막아야 'importKey of undefined' 크립틱 오류가 안 난다. 🛡️
+    if (_blockIfNoWebCrypto()) return;
     if (IS_READ_ONLY) {
         document.querySelectorAll('.rw-only').forEach(function (el) { el.style.display = 'none'; });
         document.getElementById('roBanner').classList.add('show');
@@ -448,6 +502,9 @@ function init() {
     const params = new URLSearchParams(hash);
     const fromUrl = params.get('key');
     const fromSession = sessionStorage.getItem('srt_board_key');
+    // 🐙📇 [V22.35] 메모 플리 딥링크 — '/media' 카드에서 '#key=…&book=<id>&memo=<id>'
+    deepBookId = params.get('book') || null;
+    deepMemoId = params.get('memo') || null;
     const key = fromUrl || fromSession;
     if (key) {
         document.getElementById('manualKey').value = key;
