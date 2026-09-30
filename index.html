@@ -6,7 +6,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>📝 SRT Private Memo Board</title>
 <style>
-  :root {
+  /* ─────────────────────────────────────────────────────────────
+     [V22.36] 🎨 테마 변수 2벌 (modern 다크 / meow 오렌지냥)
+     · 이 CSS 는 아래에서 오직 var() 만 쓴다. 새 색 추가 시 여기만 고치면 된다. 🎯
+     · meow 팔레트는 Binu Media Center 의 body.skin-meow 와 동일 값이다. 🐱
+     · 기본값은 오렌지냥(meow) — 서버의 dashboard_skin 설정이 자리표시자로 주입된다.
+     ───────────────────────────────────────────────────────────── */
+  :root, body.skin-modern {
     --bg-color: #0f172a;
     --panel-bg: rgba(30, 41, 59, 0.75);
     --card-bg: rgba(30, 41, 59, 0.9);
@@ -14,6 +20,72 @@
     --accent-color: #38bdf8;
     --border-color: rgba(255, 255, 255, 0.1);
     --danger: #ef4444;
+    /* ── 파생 변수 ── */
+    --text-strong: #ffffff;
+    --text-card: #cbd5e1;
+    --text-sub: #94a3b8;
+    --text-dim: #64748b;
+    --solid-card: #1e293b;
+    --input-bg: rgba(15, 23, 42, 0.7);
+    --modal-scrim: rgba(15, 23, 42, 0.86);
+    --lock-scrim: rgba(15, 23, 42, 0.97);
+    --hover-bg: rgba(255, 255, 255, 0.06);
+    --chip-bg: rgba(255, 255, 255, 0.07);
+    --accent-faint: rgba(56, 189, 248, 0.10);
+    --accent-soft: rgba(56, 189, 248, 0.14);
+    --accent-line: rgba(56, 189, 248, 0.30);
+    --accent-line-2: rgba(56, 189, 248, 0.35);
+    --on-accent: #0f172a;
+    --accent-ink: #7dd3fc;
+    --warn-bg: rgba(245, 158, 11, 0.10);
+    --warn-line: rgba(245, 158, 11, 0.32);
+    --warn-ink: #fcd34d;
+    --err-bg: rgba(239, 68, 68, 0.10);
+    --err-line: rgba(239, 68, 68, 0.30);
+    --err-ink: #fca5a5;
+    --btn-cancel-bg: #475569;
+    --pin-ink: #fbbf24;
+    --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.12);
+    --card-shadow-hi: 0 10px 15px -3px rgba(0, 0, 0, 0.30);
+    --focus-ring: rgba(56, 189, 248, 0.40);
+  }
+
+  /* 🐱 오렌지냥 (Binu Media Center 와 같은 밝은 테마) */
+  body.skin-meow {
+    --bg-color: #fdf5ea;
+    --panel-bg: rgba(255, 255, 255, 0.78);
+    --card-bg: #ffffff;
+    --text-color: #2b1a0e;
+    --accent-color: #ff5722;
+    --border-color: #f6dec3;
+    --danger: #ef4444;
+    --text-strong: #2b1a0e;
+    --text-card: #4a3527;
+    --text-sub: #7a5c48;
+    --text-dim: #a08272;
+    --solid-card: #ffffff;
+    --input-bg: #fff5eb;
+    --modal-scrim: rgba(45, 26, 15, 0.42);
+    --lock-scrim: rgba(253, 245, 234, 0.97);
+    --hover-bg: rgba(255, 87, 34, 0.07);
+    --chip-bg: rgba(255, 87, 34, 0.09);
+    --accent-faint: rgba(255, 87, 34, 0.10);
+    --accent-soft: rgba(255, 87, 34, 0.14);
+    --accent-line: rgba(255, 87, 34, 0.32);
+    --accent-line-2: rgba(255, 87, 34, 0.38);
+    --on-accent: #ffffff;
+    --accent-ink: #c2410c;
+    --warn-bg: rgba(245, 158, 11, 0.12);
+    --warn-line: rgba(245, 158, 11, 0.38);
+    --warn-ink: #92400e;
+    --err-bg: rgba(239, 68, 68, 0.10);
+    --err-line: rgba(239, 68, 68, 0.32);
+    --err-ink: #b91c1c;
+    --btn-cancel-bg: #f3e3d3;
+    --pin-ink: #b45309;
+    --card-shadow: 0 4px 14px rgba(180, 120, 80, 0.10);
+    --card-shadow-hi: 0 10px 26px rgba(180, 120, 80, 0.20);
+    --focus-ring: rgba(255, 87, 34, 0.35);
   }
   * { box-sizing: border-box; }
   body, html {
@@ -28,7 +100,7 @@
   /* ── 잠금 화면 ── */
   .lock-screen {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(15, 23, 42, 0.97);
+    background: var(--lock-scrim);
     display: flex; flex-direction: column; justify-content: center; align-items: center;
     z-index: 9999;
   }
@@ -38,17 +110,17 @@
     box-shadow: 0 8px 32px 0 rgba(0,0,0,0.45); max-width: 92%; width: 340px;
   }
   .lock-box h2 { margin-top: 0; color: var(--accent-color); font-size: 24px; }
-  .lock-box p { color: #94a3b8; font-size: 13.5px; line-height: 1.6; }
+  .lock-box p { color: var(--text-sub); font-size: 13.5px; line-height: 1.6; }
   .lock-input {
     width: 100%; padding: 12px; border-radius: 10px;
-    border: 1px solid var(--border-color); background: rgba(15,23,42,0.7);
-    color: #fff; text-align: center; font-size: 15px; margin-bottom: 14px;
+    border: 1px solid var(--border-color); background: var(--input-bg);
+    color: var(--text-strong); text-align: center; font-size: 15px; margin-bottom: 14px;
     outline: none; transition: border-color 0.2s;
   }
   .lock-input:focus { border-color: var(--accent-color); }
   .lock-btn {
     width: 100%; padding: 12px; border-radius: 10px;
-    background: var(--accent-color); color: #0f172a; font-weight: 700;
+    background: var(--accent-color); color: var(--on-accent); font-weight: 700;
     border: none; font-size: 15px; cursor: pointer; transition: opacity 0.2s;
   }
   .lock-btn:hover { opacity: 0.9; }
@@ -70,17 +142,20 @@
   .search-bar {
     width: 100%; max-width: 330px; padding: 9px 16px; border-radius: 20px;
     border: 1px solid var(--border-color); background: var(--panel-bg);
-    color: #fff; outline: none; font-size: 13px;
+    color: var(--text-strong); outline: none; font-size: 13px;
   }
   .search-bar:focus { border-color: var(--accent-color); }
   .btn {
     border: none; padding: 8px 15px; border-radius: 11px; cursor: pointer;
     font-size: 13px; font-weight: 700; white-space: nowrap; transition: all 0.18s;
   }
-  .btn-primary { background: var(--accent-color); color: #0f172a; }
+  .btn-primary { background: var(--accent-color); color: var(--on-accent); }
   .btn-primary:hover { opacity: 0.9; transform: scale(1.02); }
-  .btn-ghost { background: transparent; color: #94a3b8; border: 1px solid var(--border-color); }
+  .btn-ghost { background: transparent; color: var(--text-sub); border: 1px solid var(--border-color); }
   .btn-ghost:hover { background: rgba(239,68,68,0.1); color: var(--danger); border-color: rgba(239,68,68,0.25); }
+  /* [V22.36] 🎨 테마 토글 버튼 — 현재 테마를 미리 보여준다 */
+  .btn-skin { background: var(--accent-faint); color: var(--accent-color); border: 1px solid var(--accent-line); }
+  .btn-skin:hover { background: var(--accent-color); color: var(--on-accent); border-color: var(--accent-color); transform: scale(1.02); }
   .btn:disabled { opacity: 0.5; cursor: wait; }
 
   .layout { display: flex; gap: 20px; align-items: flex-start; }
@@ -89,31 +164,31 @@
     border: 1px solid var(--border-color); border-radius: 14px; padding: 14px 12px;
   }
   .sidebar-title {
-    font-size: 11.5px; font-weight: 700; color: #64748b; letter-spacing: 0.5px;
+    font-size: 11.5px; font-weight: 700; color: var(--text-dim); letter-spacing: 0.5px;
     margin: 0 0 10px 4px; text-transform: uppercase;
   }
   .book-list { display: flex; flex-direction: column; gap: 3px; margin-bottom: 12px; }
   .book-item {
     display: flex; align-items: center; gap: 8px; padding: 9px 11px;
-    border-radius: 10px; cursor: pointer; font-size: 13.5px; color: #cbd5e1;
+    border-radius: 10px; cursor: pointer; font-size: 13.5px; color: var(--text-card);
     transition: background 0.15s; border: 1px solid transparent; user-select: none;
   }
-  .book-item:hover { background: rgba(255,255,255,0.06); }
-  .book-item.active { background: rgba(56,189,248,0.14); border-color: rgba(56,189,248,0.35); color: #fff; font-weight: 700; }
+  .book-item:hover { background: var(--hover-bg); }
+  .book-item.active { background: var(--accent-soft); border-color: var(--accent-line-2); color: var(--text-strong); font-weight: 700; }
   .book-emoji { font-size: 15px; flex-shrink: 0; }
   .book-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .book-count {
-    font-size: 11px; color: #64748b; background: rgba(255,255,255,0.07);
+    font-size: 11px; color: var(--text-dim); background: var(--chip-bg);
     padding: 1px 7px; border-radius: 9px; flex-shrink: 0;
   }
   .book-tools { display: flex; flex-direction: column; gap: 5px; }
   .book-tool {
     display: flex; align-items: center; gap: 7px; padding: 8px 11px; border-radius: 9px;
-    font-size: 12.5px; color: #94a3b8; cursor: pointer; background: transparent;
+    font-size: 12.5px; color: var(--text-sub); cursor: pointer; background: transparent;
     border: 1px dashed var(--border-color); text-align: left; width: 100%;
     font-family: inherit; transition: all 0.15s;
   }
-  .book-tool:hover { background: rgba(56,189,248,0.1); color: var(--accent-color); border-color: rgba(56,189,248,0.3); }
+  .book-tool:hover { background: var(--accent-faint); color: var(--accent-color); border-color: var(--accent-line); }
 
   .content-area { flex: 1; min-width: 0; }
   .banner {
@@ -121,9 +196,9 @@
     border-radius: 11px; font-size: 12.5px; line-height: 1.5;
   }
   .banner.show { display: flex; }
-  .banner-ro { background: rgba(56,189,248,0.1); border: 1px solid rgba(56,189,248,0.3); color: #7dd3fc; }
-  .banner-err { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: #fca5a5; }
-  .banner-warn { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.32); color: #fcd34d; }
+  .banner-ro { background: var(--accent-faint); border: 1px solid var(--accent-line); color: var(--accent-ink); }
+  .banner-err { background: var(--err-bg); border: 1px solid var(--err-line); color: var(--err-ink); }
+  .banner-warn { background: var(--warn-bg); border: 1px solid var(--warn-line); color: var(--warn-ink); }
   .link-btn {
     background: transparent; border: none; color: var(--accent-color);
     font: inherit; font-weight: 700; cursor: pointer; text-decoration: underline;
@@ -133,24 +208,24 @@
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(272px, 1fr)); gap: 17px; }
   .card {
     background: var(--card-bg); border-radius: 13px; padding: 17px;
-    border: 1px solid var(--border-color); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.12);
+    border: 1px solid var(--border-color); box-shadow: var(--card-shadow);
     transition: transform 0.18s, box-shadow 0.18s, border-color 0.18s;
     display: flex; flex-direction: column;
   }
-  .card:hover { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3); border-color: var(--accent-color); }
+  .card:hover { transform: translateY(-3px); box-shadow: var(--card-shadow-hi); border-color: var(--accent-color); }
   .card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 9px; margin-bottom: 7px; }
   .card-title { font-size: 16.5px; font-weight: 700; color: var(--accent-color); margin: 0; line-height: 1.35; word-break: break-word; }
   .card-actions { display: flex; gap: 3px; flex-shrink: 0; }
   .icon-btn {
-    cursor: pointer; color: #64748b; background: transparent; border: none;
+    cursor: pointer; color: var(--text-dim); background: transparent; border: none;
     padding: 3px 5px; font-size: 13px; border-radius: 6px; transition: all 0.15s; line-height: 1;
   }
-  .icon-btn:hover { color: var(--accent-color); background: rgba(56,189,248,0.12); }
-  .icon-btn.danger:hover { color: var(--danger); background: rgba(239,68,68,0.12); }
-  .icon-btn.on { color: #fbbf24; }
-  .card-date { font-size: 11.5px; color: #64748b; margin-bottom: 12px; }
+  .icon-btn:hover { color: var(--accent-color); background: var(--accent-soft); }
+  .icon-btn.danger:hover { color: var(--danger); background: var(--err-bg); }
+  .icon-btn.on { color: var(--pin-ink); }
+  .card-date { font-size: 11.5px; color: var(--text-dim); margin-bottom: 12px; }
   .card-body {
-    font-size: 13.5px; line-height: 1.65; color: #cbd5e1;
+    font-size: 13.5px; line-height: 1.65; color: var(--text-card);
     white-space: pre-wrap; word-break: break-word; flex-grow: 1;
     max-height: 260px; overflow: hidden; position: relative;
   }
@@ -158,33 +233,33 @@
     content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 46px;
     background: linear-gradient(transparent, var(--card-bg));
   }
-  .empty-hint { text-align: center; padding: 54px 20px; color: #64748b; font-size: 14px; grid-column: 1/-1; }
+  .empty-hint { text-align: center; padding: 54px 20px; color: var(--text-dim); font-size: 14px; grid-column: 1/-1; }
 
   /* ── 모달 ── */
   .modal {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(15,23,42,0.86); display: none;
+    background: var(--modal-scrim); display: none;
     justify-content: center; align-items: center; z-index: 10000; padding: 18px;
   }
   .modal-box {
-    background: #1e293b; padding: 24px; border-radius: 16px;
+    background: var(--solid-card); padding: 24px; border-radius: 16px;
     border: 1px solid var(--border-color); width: 100%; max-width: 520px;
     box-shadow: 0 10px 25px rgba(0,0,0,0.5); max-height: 90vh; overflow-y: auto;
   }
   .modal-box h3 { margin-top: 0; color: var(--accent-color); font-size: 19px; margin-bottom: 18px; }
-  .modal-label { display: block; font-size: 12px; color: #94a3b8; margin-bottom: 6px; font-weight: 600; }
+  .modal-label { display: block; font-size: 12px; color: var(--text-sub); margin-bottom: 6px; font-weight: 600; }
   .modal-input, .modal-textarea, .modal-select {
     width: 100%; padding: 11px; border-radius: 9px; margin-bottom: 15px;
-    border: 1px solid var(--border-color); background: rgba(15,23,42,0.7);
-    color: #fff; font-size: 14px; outline: none; font-family: inherit;
+    border: 1px solid var(--border-color); background: var(--input-bg);
+    color: var(--text-strong); font-size: 14px; outline: none; font-family: inherit;
   }
   .modal-textarea { height: 190px; resize: vertical; line-height: 1.6; }
   .modal-input:focus, .modal-textarea:focus, .modal-select:focus { border-color: var(--accent-color); }
-  .modal-select option { background: #1e293b; color: #fff; }
+  .modal-select option { background: var(--solid-card); color: var(--text-strong); }
   .modal-buttons { display: flex; justify-content: flex-end; gap: 9px; flex-wrap: wrap; }
   .modal-btn { padding: 9px 17px; border-radius: 9px; font-weight: 700; cursor: pointer; border: none; font-size: 13.5px; }
-  .modal-btn-cancel { background: #475569; color: #f8fafc; }
-  .modal-btn-save { background: var(--accent-color); color: #0f172a; }
+  .modal-btn-cancel { background: var(--btn-cancel-bg); color: var(--text-color); }
+  .modal-btn-save { background: var(--accent-color); color: var(--on-accent); }
   .modal-btn-danger { background: var(--danger); color: #fff; }
   .modal-btn:disabled { opacity: 0.5; cursor: wait; }
 
@@ -204,7 +279,7 @@
   }
 </style>
 </head>
-<body>
+<body class="skin-meow">
 
 <div id="lockScreen" class="lock-screen">
   <div class="lock-box">
@@ -214,12 +289,12 @@
          LAN IP(http://192.168.x.x)로 열면 undefined → 'importKey of undefined' 크립틱 오류가 났다.
          [V22.35] 이제는 에러를 뿌리지 않고 GitHub Pages(HTTPS)로 '자동 이동'시킨다. 🔐🚀
          (자동 이동이 안 되는 예외 상황 대비용 안내 상자 — 평소엔 1초도 안 보임) -->
-    <div id="insecureNotice" style="display:none;margin:14px 0;padding:14px;border-radius:12px;background:rgba(56,189,248,.14);border:1px solid rgba(56,189,248,.5);text-align:left;line-height:1.75;font-size:14px;">
+    <div id="insecureNotice" style="display:none;margin:14px 0;padding:14px;border-radius:12px;background:var(--accent-soft);border:1px solid var(--accent-line-2);text-align:left;line-height:1.75;font-size:14px;">
       <b>🌐 이 주소는 암호화를 못 써서 GitHub 주소(HTTPS)로 옮겨갈게! 🔐</b><br>
       브라우저는 <b>HTTPS</b> 또는 <b>localhost</b> 에서만 암호화 기능(🔐 WebCrypto)을 허용해.<br>
       지금 주소(<span id="insecureHost"></span>)는 그 대상이 아니야. 잠깐만 기다려! ⏳<br><br>
       <b>👉 자동으로 연결되는 주소</b><br>
-      ① <b>GitHub Pages 주소</b> → <a id="insecureForwardLink" href="#" style="color:#38bdf8;">연결 중...</a> 🌐<br>
+      ① <b>GitHub Pages 주소</b> → <a id="insecureForwardLink" href="#" style="color:var(--accent-color);">연결 중...</a> 🌐<br>
       ② <b>같은 PC 브라우저</b> → <code id="insecureLocalUrl">http://127.0.0.1:PORT/memo</code> 로 열어줘 🖥️<br>
       ③ <b>휴대폰</b>에서 볼 때도 반드시 <b>HTTPS 주소</b>를 써야 해 📱
     </div>
@@ -234,6 +309,7 @@
     <h1>📝 SRT Private Memo</h1>
     <div class="header-tools">
       <input type="text" id="search" class="search-bar" placeholder="🔍 메모 검색..." oninput="renderMemos()">
+      <button class="btn btn-skin" id="btnSkinToggle" onclick="toggleBoardSkin()" title="테마 전환 (오렌지냥 ↔ 다크)">🐱 오렌지냥 ▾</button>
       <button class="btn btn-primary rw-only" id="btnAddMemo" onclick="openMemoModal()">➕ 새 메모</button>
       <button class="btn btn-ghost" onclick="logout()">🔒 잠금</button>
     </div>
@@ -294,13 +370,13 @@
 <div id="pinModal" class="modal" onclick="if(event.target===this) closePinModal()">
   <div class="modal-box" style="max-width:360px;">
     <h3>🔐 쓰기 전용 PIN 입력</h3>
-    <p style="color:#94a3b8; font-size:13px; margin-top:-4px; margin-bottom:14px; line-height:1.5;">
+    <p style="color:var(--text-sub); font-size:13px; margin-top:-4px; margin-bottom:14px; line-height:1.5;">
       이 보드는 내용은 암호화되어 보이지만, 저장/수정/삭제는 쓰기 PIN 이 필요해냥! 🔒
     </p>
     <label class="modal-label" for="pinInput">쓰기 PIN (6자리 숫자)</label>
     <input type="password" id="pinInput" class="modal-input" placeholder="••••••"
            inputmode="numeric" pattern="\d{6}" maxlength="6" autocomplete="off">
-    <div id="pinErr" style="color:#fca5a5; font-size:12px; margin-top:-10px; margin-bottom:14px; display:none;"></div>
+    <div id="pinErr" style="color:var(--err-ink); font-size:12px; margin-top:-10px; margin-bottom:14px; display:none;"></div>
     <div class="modal-buttons">
       <button class="modal-btn modal-btn-cancel" onclick="closePinModal()">취소</button>
       <button class="modal-btn modal-btn-save" id="pinSaveBtn" onclick="unlockWriteWithPin()">잠금 해제</button>
@@ -319,7 +395,7 @@
    · LOCAL_API 가 null 이면(GitHub Pages 사본) 완전한 읽기 전용.
    ────────────────────────────────────────────────────────────── */
 
-const ENCRYPTED_DATA = {"salt": "uOz04qTmG7zO95a+FRVSLw==", "iv": "duNnIcJT8n4lTE/O", "ciphertext": "sjLytI0zMLRsQn4YoaoC+Pw6VBSYutcvf/PcRFYGIOlFVKk+co/3ST9NJsNROIhsmL1S0icY9gfYzJVELycWZVa1Dk7xEtnTx7XhBbBx5SzycR6e62+sfL4sspE9nR4H5mKcyH0+zS7A3cANmTIKBd0dByOWcdFZGeMJAGNXYylDe3mUaypvtQshD8H97ZR5oBIAi9WQ8H4eBgldA6X1M1iSgmGI/yXAY9hlRTUkXGgZNwF1DvPUvgMT/qKNt/Sgzt8p7T+2w4tfcPQgy//hImdIMaSy+7ojqG75LOuugiV9aNSVPXEz8Y4tctXVK04mJCHeaSllxOVgo4kC5jDzM+4cYP/Lq9OXCXI/j1WFaJtyKPtkzLe8taM4AW4hXa+6w+WUuKSA9eWoVQrJFAWqjziSz17WTpL18uUzBEnGdxmfsuJmIoTLM/DtTAC+rkxE2Ftl6LU9UhclHkwRmzwKE8RP8xkXjLf0LTEvbZ5iweq6YznqbfWdwTcTEB+st1u9djHC2fmGktrr13U="};
+const ENCRYPTED_DATA = {"salt": "1pZMbx42drEY8cJ6R8xCcg==", "iv": "3mygHTUTQ2tyf1lb", "ciphertext": "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"};
 const LOCAL_API = null;
 const IS_READ_ONLY = !LOCAL_API;
 const HAS_WRITE_PIN = false;
@@ -328,6 +404,59 @@ const LOCAL_KEY = null;
    서버가 None 으로 주입하면 자동 이동이 불가능(깃허브 미연동) → 안내만 보여준다.
    typeof 검사 덕분에 템플릿에 자리표시자가 없어도 ReferenceError 가 나지 않는다. 🛡️ */
 const PAGES_URL = (typeof null !== 'undefined' && null) ? null : null;
+/* 🎨 [V22.36] 서버가 넣어둔 테마(dashboard_skin). 없으면 기본 오렌지냥으로 간다.
+   ⚠️ HTML 속성용 자리표시자와 '다른 이름'을 쓴다 — 속성용은 따옴표 없는 값으로 들어가므로
+      JS 에서 곧바로 치환해버리면 typeof 비교가 무의미해져 서버값을 못 읽는다(항상 null).
+      여기의 JS 전용 자리표시자만 JSON 문자열("meow") 로 치환된다. 🛡️ */
+const SERVER_SKIN = (typeof "meow" !== 'undefined' && "meow") ? "meow" : null;
+
+/* ─────────────────────────────────────────────────────────────
+   🎨 [V22.36] 테마 토글 — 오렌지냥(meow, 기본) ↔ 다크(modern)
+   · 정본 = 서버 settings['dashboard_skin'] → JS 전용 자리표시자로 주입.
+     Binu Media Center 의 body.skin-meow 와 '같은 설정값'이라 서로 자동 동기화된다. 🔄
+   · 캐시 = localStorage['srt_skin'] (origin 마다 분리 → 그 origin 의 마지막 선택)
+   · GitHub Pages 사본은 IS_READ_ONLY → 서버 저장은 건너뛴다(같은 출처 API 없음). 🛡️
+   ───────────────────────────────────────────────────────────── */
+const BOARD_SKINS = ['modern', 'meow'];
+const BOARD_SKIN_LABELS = { 'meow': '🐱 오렌지냥', 'modern': '🎨 다크' };
+const BOARD_SKIN_DEFAULT = 'meow';
+
+function boardCurrentSkin() {
+    let s = null;
+    try { s = localStorage.getItem('srt_skin'); } catch (e) {}
+    if (BOARD_SKINS.indexOf(s) >= 0) return s;
+    return BOARD_SKINS.indexOf(SERVER_SKIN) >= 0 ? SERVER_SKIN : BOARD_SKIN_DEFAULT;
+}
+
+function boardApplySkin(skin, saveServer) {
+    if (BOARD_SKINS.indexOf(skin) < 0) skin = BOARD_SKIN_DEFAULT;
+    document.body.classList.remove('skin-modern', 'skin-meow');
+    document.body.classList.add('skin-' + skin);
+    try { localStorage.setItem('srt_skin', skin); } catch (e) {}
+    const btn = document.getElementById('btnSkinToggle');
+    if (btn) btn.textContent = (BOARD_SKIN_LABELS[skin] || BOARD_SKIN_LABELS[BOARD_SKIN_DEFAULT]) + ' ▾';
+    if (saveServer && !IS_READ_ONLY) {
+        try {
+            fetch('/api/dashboard/skin', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ skin: skin })
+            }).catch(function () {});
+        } catch (e) {}
+    }
+}
+
+function toggleBoardSkin() {
+    boardApplySkin(boardCurrentSkin() === 'meow' ? 'modern' : 'meow', true);
+}
+
+/* 라이트 테마에서 다크 전용 강조색이 남지 않도록 '현재 적용된 테마 변수'를 읽는다 */
+function boardCssVar(name, fallback) {
+    try {
+        const v = getComputedStyle(document.body).getPropertyValue(name).trim();
+        return v || fallback;
+    } catch (e) { return fallback; }
+}
 
 let board = null;
 let currentBookId = null;
@@ -513,7 +642,8 @@ async function submitUnlock() {
                 if (targetEl) {
                     targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     targetEl.style.transition = 'all 0.4s ease';
-                    targetEl.style.boxShadow = '0 0 0 3px #38bdf8, 0 8px 24px rgba(56, 189, 248, 0.4)';
+                    targetEl.style.boxShadow = '0 0 0 3px ' + boardCssVar('--accent-color', '#38bdf8')
+                        + ', 0 8px 24px ' + boardCssVar('--focus-ring', 'rgba(56, 189, 248, 0.4)');
                     targetEl.style.transform = 'scale(1.02)';
                     setTimeout(function () {
                         targetEl.style.boxShadow = '';
@@ -537,7 +667,9 @@ function logout() {
 }
 
 function init() {
-    // 🌐 [보안 컨텍스트] HTTPS/localhost 아니면 복호화 자체가 불가능하다.
+    // 🎨 [V22.36] 저장된 테마 적용 (localStorage 우선, 없으면 서버가 넣어둔 값). 🐱
+    boardApplySkin(boardCurrentSkin(), false);
+    // 🌐 [보안 컨텍스트] HTTPS/localhost 아니면 복호화 자체가 불가능한다.
     //    딥링크로 키가 들어와도 GitHub Pages(HTTPS)로 자동 이동시켜 'importKey of undefined' 오류를 없앤다. 🛡️🔐
     if (_forwardToSecureContext()) return;
     if (IS_READ_ONLY) {
@@ -643,7 +775,7 @@ function renderMemos() {
         const bodyClass = m.content.length > 420 ? 'card-body clamped' : 'card-body';
         // ✏️ 고쳐진 메모는 '수정 시각' 을 함께 보여준다 (안 그러면 언제 손댔는지 알 수 없다)
         const updLine = m.updated_at
-            ? '<span style="color:#fcd34d;"> ✏️ ' + escapeHtml(m.updated_at) + '</span>'
+            ? '<span style="color:var(--warn-ink);"> ✏️ ' + escapeHtml(m.updated_at) + '</span>'
             : '';
 
         card.innerHTML =
